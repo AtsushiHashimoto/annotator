@@ -1,0 +1,45 @@
+$base_col: #858EFF;
+$base_col2: #3F48B2;
+$accent_col: #FFE585;
+$accent_col2: #B29939;
+
+$margin-side: 2%;
+
+$margin-top: 10px;
+
+$padding-vert: 5px;
+
+html,body{
+	height: 100%;
+}
+
+/* body */
+body{
+	background-color: $base_col2;
+
+	/* Common */
+	.container{
+		margin-top: $margin-top;
+		margin-left: $margin-side;
+		margin-right: $margin-side;
+		background-color: $base_col;
+		width: 96%;
+	}
+
+	/* Header */
+	header{
+		padding-bottom: $padding-vert;
+	}
+
+	/* Main BOdy */
+	section{
+	}
+
+
+	/* Footer */
+	footer{
+		padding-top: $padding-vert;
+		padding-bottom: $padding-vert;
+	}
+}
+

@@ -1,0 +1,10 @@
+# the directory annotated data are stored.
+# on a real server, this should be /data/annotations etc.
+annotation_log_dir: 'annotations'
+
+# アノテーション
+progress_csvfile: 'log/progress.csv'
+
+# 作業時間(分)
+work_term: 45
+rest_term: 10
