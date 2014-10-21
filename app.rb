@@ -1,3 +1,4 @@
+require 'rubygems'
 require 'sinatra/base'
 require 'sinatra/reloader'
 require 'sinatra/config_file'
@@ -9,10 +10,13 @@ require 'haml'
 
 $LOAD_PATH.push(File.dirname(__FILE__))
 require_relative 'lib/user'
+require_relative 'lib/Utils'
 
 Mongoid.load!("mongoid.yml", :development)
 
 class KUSKAnnotator < Sinatra::Base
+		register Helpers::Utils
+
 		use Rack::MethodOverride
 		enable :sessions
 		set :session_secret, "My session secret"
@@ -47,7 +51,7 @@ class KUSKAnnotator < Sinatra::Base
 
 			session[:user_id] ||= nil 
 			if session[:user_id]
-				redirect '/log_out' #logout form
+				redirect '/go_on' #logout form
 			end 
 			
 			haml :"user/sign_up"
@@ -73,7 +77,7 @@ class KUSKAnnotator < Sinatra::Base
 		get '/log_in' do
 			@title = "ログイン画面"
 			if session[:user_id]
-				redirect '/log_out'
+				redirect '/go_on'
 			end 
 			
 			haml :"user/log_in"
@@ -94,27 +98,25 @@ class KUSKAnnotator < Sinatra::Base
 			end
 		end
 
-		#logout form
-		get '/log_out' do
-			@title="ログアウト"
-			unless session[:user_id]
-				redirect '/log_in'
-			end 
-			haml :"user/log_out"
-		end
-
 		#logout action
 		delete '/session' do
 			session[:user_id] = nil
 			redirect '/log_in'
 		end
 
+		#共通の処理
+		before do
+			@user = User.where(_id: session[:user_id]).first
+			@meta_tags = []
+		end
 
     # session内部のページ
 		#user dashboard
 		get '/users' do
 			@title="ダッシュボード"
 			@user = User.where(_id: session[:user_id]).first
+						
+      @meta_tags << {:class=>:min_time, :val=>settings.test[:min_time]}
 			if @user
 				haml :"contents/dashboard"
 			else
@@ -123,10 +125,7 @@ class KUSKAnnotator < Sinatra::Base
 		end
 
     get '/' do
-			  # Sinatraでのログインの方法を再度調べる(basic認証で十分)
-				is_logged_in = true
-        
-        if is_logged_in then
+        unless @user then
             redirect "/log_in",303
         else
 						redirect "/go_on",303
@@ -162,7 +161,7 @@ class KUSKAnnotator < Sinatra::Base
     get '/task' do
         task = "test"
         blob_id = "2014RC03_S002_P001"
-				task,blob_id = select_task(user,settings.progress_csvfile)
+				task,blob_id = select_task(@user,settings.progress_csvfile)
 #        blob_id = "2014RC03_S002_T001"
         # redirect to /task/:task/:blob
 				if task == nil then
@@ -174,6 +173,7 @@ class KUSKAnnotator < Sinatra::Base
     end
 
     get '/go_on' do
+				redirect "/users"
         # 前の休憩に入った時間から10分経ったかどうかをチェックしてログイン
         is_in_rest = false
         if is_in_rest then
