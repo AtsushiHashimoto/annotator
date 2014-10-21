@@ -8,3 +8,12 @@ progress_csvfile: 'log/progress.csv'
 # 作業時間(分)
 work_term: 45
 rest_term: 10
+
+test:
+ min_time: 3
+
+rest:
+ min_time: 60
+
+task1:
+ min_time: 10
