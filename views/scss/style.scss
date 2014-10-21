@@ -1,13 +1,20 @@
 $base_col: #858EFF;
 $base_col2: #3F48B2;
+$no_color: #000000;
 $accent_col: #FFE585;
 $accent_col2: #B29939;
+$text_col_light: #ffffff;
 
-$margin-side: 2%;
+$header_height: 50px;
 
-$margin-top: 10px;
+
+$text-height: 19px;
+
+$margin-vert: 10px;
+$margin-side: 10px;
 
 $padding-vert: 5px;
+$padding-side: 5px;
 
 html,body{
 	height: 100%;
@@ -15,31 +22,84 @@ html,body{
 
 /* body */
 body{
-	background-color: $base_col2;
+	background-color: $no_color;
 
-	/* Common */
+	/* common for .container */
 	.container{
-		margin-top: $margin-top;
-		margin-left: $margin-side;
-		margin-right: $margin-side;
-		background-color: $base_col;
-		width: 96%;
+		width:100%;
 	}
 
 	/* Header */
-	header{
-		padding-bottom: $padding-vert;
+	.navbar{
+		height:$header_height;
+		background: $no_color;
+		border:0;
+		p.navbar-text{
+			color: $text_col_light !important;
+		}
+
+		.navbar-inner{
+			-webkit-box-shadow: none;
+			-moz-box-shadow: none;
+			box-shadow: none;
+			/* Safari,Google Chrome用 */
+			-webkit-border-bottom-right-radius: 10px;
+			-webkit-border-bottom-left-radius: 10px;
+			/* Firefox用 */
+			-moz-border-radius-bottomright: 10px;
+			-moz-border-radius-bottomleft: 10px;
+		}
+		.dropdown-toggle{
+			height:$header_height;
+		}
 	}
-
-	/* Main BOdy */
-	section{
-	}
-
-
+	
 	/* Footer */
 	footer{
 		padding-top: $padding-vert;
 		padding-bottom: $padding-vert;
+		height:5%;
+		color: $text_col_light;
+	}
+
+	section.main{	
+		margin-top: $header_height;
+		height:90%;
+
+		/* Common */
+		.main_field{
+			padding-top: $padding-vert;
+			padding-bottom: $padding-vert;
+			padding-left: $padding-side;
+			padding-right: $padding-side;
+
+			background-color: $base_col;
+			height:100%;
+
+			#go_to_next{
+				display:none;
+			}
+		}
+
+		.left_side{
+			padding-top: $padding-vert;
+			padding-bottom: $padding-vert;
+			padding-left: $padding-side;
+			padding-right: $padding-side;
+			
+			color: $text_col_light;
+
+			background-color: $base_col2;
+			height:100%;
+
+			.timer{
+				width: 100%;
+				height: $text-height;
+				background-color: $base_col2;
+				border:0;
+			}
+		}
+		
 	}
 }
 

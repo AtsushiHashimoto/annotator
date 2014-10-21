@@ -9,6 +9,7 @@
 		/Bootstrap
 		%link(rel="stylesheet" href="/css/bootstrap.min.css")
 		%link(rel="stylesheet" href="/css/bootstrap-theme.min.css")
+		%link(rel="stylesheet" href="jquery.countdown.package/jquery.countdown.css")
 		
 		/HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries
 		/WARNING: Respond.js doesn't work if you view the page via file://
@@ -18,11 +19,20 @@
 			<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 			<![endif]
 		%link(rel="stylesheet" href="/scss/style")
+		-	@meta_tags.each do |meta_tag|
+			%meta{meta_tag}
 	%body
-		%header.container= haml :'layout/header'
-		%section.container
-			!= yield
-		%footer.container= haml :'layout/footer'
+		= haml :'layout/header'
+		%section.main.container
+			.left_side.col-lg-2
+				= haml :'layout/left_side'
+			.main_field.col-lg-10
+				!= yield
+		%footer.container
+			= haml :'layout/footer'
 
 		%script(src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js")
 		%script(src="/js/bootstrap.min.js")
+		%script(src="/jquery.countdown.package/jquery.plugin.min.js")
+		%script(src="/jquery.countdown.package/jquery.countdown.min.js")
+		%script(src="/js/app.js")

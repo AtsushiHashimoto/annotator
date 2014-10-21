@@ -1,0 +1,8 @@
+- if @user
+	.welcome
+		= "ようこそ #{@user.name} さん"
+	%br
+- unless nil == @meta_tags.find{|v|v[:class]==:min_time}
+	.time
+		残りの最低作業継続時間
+		.timer

@@ -1,1 +1,14 @@
-%h3= @title
+.navbar.navbar-fixed-top
+	.navbar-inner
+		.nav-collapse
+			%p.navbar-text= @title
+			- if @user
+				%ul.nav.pull-right
+					%li.dropdown
+						%a.dropdown-toggle{:'data-toggle'=>"dropdown"} ログインメニュー
+						%ul.dropdown-menu
+							%li
+								%form#logout-form{:action => '/session', :method => 'post'}
+									%fieldset
+										%input{:type => "hidden", :name => '_method', :value=>'delete' }
+										%a.logout{:href=>"#"} ログアウト

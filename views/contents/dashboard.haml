@@ -6,3 +6,8 @@
 		%tr 
 			%td Email
 			%td= @user.email
+
+%form#annotation_completion{:action => '/annotation/@task/@blob_id', :method => 'post'}
+	%fieldset
+	%input{:type => "hidden", :name => '_method', :value=>'delete' }
+	%input#go_to_next{:type => "submit", :value=>"次へ"}
