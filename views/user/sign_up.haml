@@ -1,0 +1,16 @@
+%form{:action => '/users', :method => 'post'}
+	%fieldset
+		%p  
+			%label{:for => "name"} Name:
+			%input{:name => "name", :type => "text", :value => ""}
+		%p  
+			%label{:for => "email"} Email:
+			%input{:name => "email", :type => "text", :value => ""}
+		%p  
+			%label{:for => "password"} Password:
+			%input{:name => "password", :type => "password", :value => ""}
+		%p  
+			%label{:for => "confirm_password"} Confirm Password:
+			%input{:name =>  "confirm_password", :type => "password", :value => ""}
+		%p  
+			%input{:type => "submit", :value => "Sign Up"}

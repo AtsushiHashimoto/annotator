@@ -5,7 +5,9 @@ require 'app.rb'
 
 class Application < Sinatra::Base
     use KUSKAnnotator
-    
+
+		set :port, 4568
+
     # 404 Error!
     not_found do
         status 404

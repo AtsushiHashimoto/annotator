@@ -3,13 +3,21 @@ require 'sinatra/reloader'
 require 'sinatra/config_file'
 require 'json'
 require 'active_support/all'
+require 'sass'
 require 'haml'
 
-$LOAD_PATH.push(File.dirname(__FILE__))
 
+$LOAD_PATH.push(File.dirname(__FILE__))
+require_relative 'lib/user'
+
+Mongoid.load!("mongoid.yml", :development)
 
 class KUSKAnnotator < Sinatra::Base
-    configure do
+		use Rack::MethodOverride
+		enable :sessions
+		set :session_secret, "My session secret"
+
+		configure do
         #set hyper parameters
         set :MyConffile, "config.yml"
         
@@ -17,6 +25,9 @@ class KUSKAnnotator < Sinatra::Base
         register Sinatra::ConfigFile
         config_file "#{settings.root}/#{settings.MyConffile}"
 
+				session = Moped::Session.new(["localhost:4568"])
+				session.use "testdb"
+				Mongoid::Threaded.sessions[:default] = session
     end
 
     configure :development do
@@ -27,21 +38,102 @@ class KUSKAnnotator < Sinatra::Base
 			scss :"scss/#{basename}"
 		end
 
+
+		# ユーザ管理
+
+		# signup form
+		get '/sign_up' do
+			@title = "ユーザ登録"
+
+			session[:user_id] ||= nil 
+			if session[:user_id]
+				redirect '/log_out' #logout form
+			end 
+			
+			haml :"user/sign_up"
+		end 
+
+		#signup action
+		post '/users' do
+			if params[:password] != params[:confirm_password]
+				redirect "/sign_up"
+			end
+			
+			user = User.new(email: params[:email], name: params[:name])
+			user.encrypt_password(params[:password])
+			if user.save!
+				session[:user_id] = user._id
+				redirect "/users" #user dashboard page
+			else
+			redirect "/sign_up"
+			end
+		end
+
+		#login form
+		get '/log_in' do
+			@title = "ログイン画面"
+			if session[:user_id]
+				redirect '/log_out'
+			end 
+			
+			haml :"user/log_in"
+		end
+
+		#login action
+		post '/session' do
+			if session[:user_id]
+				redirect "/users"
+			end
+			
+			user = User.authenticate(params[:email], params[:password])
+			if user
+				session[:user_id] = user._id
+				redirect '/users'
+			else
+			redirect "/log_in"
+			end
+		end
+
+		#logout form
+		get '/log_out' do
+			@title="ログアウト"
+			unless session[:user_id]
+				redirect '/log_in'
+			end 
+			haml :"user/log_out"
+		end
+
+		#logout action
+		delete '/session' do
+			session[:user_id] = nil
+			redirect '/log_in'
+		end
+
+
+    # session内部のページ
+		#user dashboard
+		get '/users' do
+			@title="ダッシュボード"
+			@user = User.where(_id: session[:user_id]).first
+			if @user
+				haml :"contents/dashboard"
+			else
+			redirect '/log_in'
+			end
+		end
+
     get '/' do
 			  # Sinatraでのログインの方法を再度調べる(basic認証で十分)
 				is_logged_in = true
         
         if is_logged_in then
-            redirect "/login",303
+            redirect "/log_in",303
         else
-						redirect "/goon",303
+						redirect "/go_on",303
 				end        
     end
 
-    get '/login' do
-				@title = "ログイン画面"
-        haml :'contents/login'
-    end
+
 
     get '/task/:task/:blob_id' do |task,blob_id|
 			  @title = "Task #{task}"
@@ -81,7 +173,7 @@ class KUSKAnnotator < Sinatra::Base
         redirect "/task/#{task}/#{blob_id}",303
     end
 
-    get '/goon' do
+    get '/go_on' do
         # 前の休憩に入った時間から10分経ったかどうかをチェックしてログイン
         is_in_rest = false
         if is_in_rest then
