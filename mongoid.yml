@@ -1,6 +1,13 @@
 development:
  sessions:
   default:
-   database: mongoid
+   database: kusk_annotation_development
+   hosts:
+    - localhost:27017
+
+production:
+ sessions:
+  default:
+   database: kusk_annotation
    hosts:
     - localhost:27017
