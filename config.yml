@@ -1,19 +1,7 @@
-# the directory annotated data are stored.
-# on a real server, this should be /data/annotations etc.
-annotation_log_dir: 'annotations'
 
-# アノテーション
-progress_csvfile: 'log/progress.csv'
-
-# 作業時間(分)
-work_term: 45
-rest_term: 10
-
-test:
- min_time: 3
-
-rest:
- min_time: 60
-
-task1:
- min_time: 10
+# 作業時間(分:秒)
+work_time: '30:00'
+min_work_time:
+ rest: '5:00'
+ task1: '1:00'
+ overwrite: '0:01'
