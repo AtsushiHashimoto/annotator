@@ -1,18 +1,24 @@
 jQuery(function ($) {
 			 // global variables
 			 var DEBUG = 1;
-       var min_time = 0;			 			 
+       var min_work_time = 0;
 
 			 // timerが切れたときに終了するボタンを押せるようにする．
 			 var on_timer_expiration = function(){
-				$('#go_to_next').show(0);
+					$('#keep_old').show(0);
+					$('#go_to_next').show(0);
 			 };
+			 
+			 
 			 
 			 var set_timer = function(){
 			 
-				if($('.min_time').length){
-				 min_time = Number($('.min_time').attr('val'));
-			   $('.timer').countdown({until: min_time, compact: true, layout: '{mnn}{sep}{snn}', description: '', onExpiry: on_timer_expiration});
+				if($('.min_work_time').length){
+				 min_work_time = Number($('.min_work_time').attr('val'));
+			   $('.timer').countdown({until: min_work_time, compact: true, layout: '{mnn}{sep}{snn}', description: '', onExpiry: on_timer_expiration});
+				}
+				else{
+					on_timer_expiration();
 				}
 	
 			 };
@@ -27,4 +33,5 @@ jQuery(function ($) {
 												 set_timer();
 												 set_logout();
 												 });
+			 
 });
