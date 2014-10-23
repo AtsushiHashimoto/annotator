@@ -1,0 +1,6 @@
+%p 連続作業時間が#{settings.work_time}を超過したので，#{settings.min_work_time[:rest]}の休憩に入ってください．
+%p 休憩中は外の空気を吸うなどしてリフレッシュしてください．
+%p 休憩が終了したら[次へ]が表示されますので，それをクリックして，作業を再開してください．
+%form#annotation_completion{:action => '/annotation', :method => 'post'}
+	%fieldset
+		= haml :'common_parts/annotation_submit'

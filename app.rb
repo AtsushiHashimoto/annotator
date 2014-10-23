@@ -9,10 +9,15 @@ require 'haml'
 
 
 $LOAD_PATH.push(File.dirname(__FILE__))
-require_relative 'lib/user'
+require_relative 'model_mongoid/user'
+require_relative 'model_mongoid/microtask'
 require_relative 'lib/Utils'
 
 Mongoid.load!("mongoid.yml", :development)
+
+LOGIN_PATH = "/log_in"
+DELETE_FROM_HISTORY = [:_id,:worker,:blob,:task]
+NULL_TIME = Time.new(1981,1,1,0,0,0)
 
 class KUSKAnnotator < Sinatra::Base
 		register Helpers::Utils
@@ -20,38 +25,41 @@ class KUSKAnnotator < Sinatra::Base
 		use Rack::MethodOverride
 		enable :sessions
 		set :session_secret, "My session secret"
+		
+		
+		# configureは宣言順に実行される．
+		configure do        
+			#Load configure file
+			register Sinatra::ConfigFile
+		end
+		configure :development do
+			register Sinatra::Reloader
+			config_file "#{settings.root}/config_dev.yml"
+		end
+		configure :production do
+			config_file "#{settings.root}/config.yml"
+		end
 
 		configure do
-        #set hyper parameters
-        set :MyConffile, "config.yml"
-        
-        #Load configure file
-        register Sinatra::ConfigFile
-        config_file "#{settings.root}/#{settings.MyConffile}"
-
-				session = Moped::Session.new(["localhost:4568"])
-				session.use "testdb"
-				Mongoid::Threaded.sessions[:default] = session
+			session = Moped::Session.new([settings.mongodb])
+			session.use "testdb"
+			Mongoid::Threaded.sessions[:default] = session
     end
 
-    configure :development do
-        register Sinatra::Reloader
-    end
 
 		get '/scss/:basename' do |basename|
 			scss :"scss/#{basename}"
 		end
 
-
 		# ユーザ管理
-
 		# signup form
 		get '/sign_up' do
 			@title = "ユーザ登録"
 
 			session[:user_id] ||= nil 
-			if session[:user_id]
-				redirect '/go_on' #logout form
+			STDERR.puts "sign_up: #{session[:user_id]}"
+			if @user
+				redirect '/task' #logout form
 			end 
 			
 			haml :"user/sign_up"
@@ -69,121 +77,182 @@ class KUSKAnnotator < Sinatra::Base
 				session[:user_id] = user._id
 				redirect "/users" #user dashboard page
 			else
-			redirect "/sign_up"
+				redirect "/sign_up"
 			end
-		end
-
-		#login form
-		get '/log_in' do
-			@title = "ログイン画面"
-			if session[:user_id]
-				redirect '/go_on'
-			end 
-			
-			haml :"user/log_in"
-		end
-
-		#login action
-		post '/session' do
-			if session[:user_id]
-				redirect "/users"
-			end
-			
-			user = User.authenticate(params[:email], params[:password])
-			if user
-				session[:user_id] = user._id
-				redirect '/users'
-			else
-			redirect "/log_in"
-			end
-		end
-
-		#logout action
-		delete '/session' do
-			session[:user_id] = nil
-			redirect '/log_in'
 		end
 
 		#共通の処理
-		before do
+		before do			
 			@user = User.where(_id: session[:user_id]).first
 			@meta_tags = []
 		end
 
+		#login form
+		get LOGIN_PATH do
+			if @user
+				redirect '/task'
+			end 
+			@title = "ログイン画面"
+			@message = session[:message]
+			session[:message] = nil
+			session[:start] = Time.new
+			haml :"user/log_in"
+		end
+		#login action
+		post '/session' do
+			_user = User.authenticate(params[:email], params[:password])
+			if _user
+				session[:user_id] = _user._id
+				redirect '/users'
+			else
+				session[:message] = "log in failed."
+				redirect LOGIN_PATH
+			end
+		end
+		#logout action
+		delete '/session' do
+			session[:user_id] = nil
+			redirect LOGIN_PATH
+		end
+
+
     # session内部のページ
 		#user dashboard
 		get '/users' do
-			@title="ダッシュボード"
-			@user = User.where(_id: session[:user_id]).first
-						
-      @meta_tags << {:class=>:min_time, :val=>settings.test[:min_time]}
-			if @user
-				haml :"contents/dashboard"
-			else
-			redirect '/log_in'
+			login_check
+			mtask_id = "#{@user.name}::test::#{now}"
+			if nil == session[:current_task] or mtask_id == session[:current_task][:id] then
+				session[:current_task] = {:id=>mtask_id,:start_time=>now}
 			end
+
+			@title="ダッシュボード"
+			#			STDERR.puts time2sec(settings.test[:min_work_time])
+			@meta_tags << {:class=>:_id,:val=>session[:current_task][:id]}
+			@meta_tags << {:class=>:worker, :val=>@user.name}
+			@meta_tags << {:class=>:start_time, :val=>session[:current_task][:start_time]}
+			@meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.test[:min_work_time]).to_s}			
+			@meta_tags << {:class=>:task,:val=>'test'}
+			@meta_tags << {:class=>:blob,:val=>'testblob'}
+			
+			haml :"contents/dashboard"
 		end
 
     get '/' do
-        unless @user then
-            redirect "/log_in",303
-        else
-						redirect "/go_on",303
-				end        
+			login_check
+			redirect "/task",303
     end
 
 
 
-    get '/task/:task/:blob_id' do |task,blob_id|
-			  @title = "Task #{task}"
-        # ユーザ名などの取得
-				haml :"contents/task_#{task}"
-    end
 
-		get '/report' do
-			#作業レポートを作成する
-			#(毎回，これを提出するようにして，作業をさぼってないことを確認させる．)
-		end
 
-		post '/annotation/:task/:blob_id' do |task,blob_id|
-        # 次のタスクに行くか，終了するかの判定．
-				go_on = false
-				
-        if go_on then
-            redirect "/task",303
-        else
-						@title = "休憩を取ってください"
-						@comment = "○○さん，お疲れさまでした．#{settings.work_term}分以上連続で作業されたので#{settings.rest_term}分休憩してください．"
-            haml :'contents/end'
-        end
-    end
 
     get '/task' do
-        task = "test"
-        blob_id = "2014RC03_S002_P001"
-				task,blob_id = select_task(@user,settings.progress_csvfile)
-#        blob_id = "2014RC03_S002_T001"
-        # redirect to /task/:task/:blob
-				if task == nil then
-					@title = "作業は全て終了しました"
-					@comment = "○○さん，お疲れさまでした．可能な全てのデータへのタグ付けが終わりました"
-					haml :'contents/end'
+			login_check
+			
+			# 次のタスクに行くか，終了するかの判定．
+			go_on = Time.new - session[:start] < time2sec(settings.work_time)
+			if go_on then
+				task,blob = select_task_or_nil(@user)
+			else
+				task = "rest"
+				blob = now
+				session[:start] = NULL_TIME
+			end
+
+			if task == nil then
+				@title = "作業は全て終了しました"
+				return haml :'contents/end'
+			end
+
+			redirect "/task/#{task}/#{blob}",303
+    end
+
+		get '/task/:task/:blob' do |task,blob|
+			
+			login_check
+			mtask_id = "#{@user.name}::#{task}::#{blob}"
+			if nil == session[:current_task] or mtask_id == session[:current_task][:id] then
+				session[:current_task] = {:id=>mtask_id,:start_time=>now}
+			end
+			
+			
+			min_work_time = settings.min_work_time[task]
+			
+			@meta_tags << {:class=>:_id,:val=>session[:current_task][:id]}
+			@meta_tags << {:class=>:worker, :val=>@user.name}
+			@meta_tags << {:class=>:start_time, :val=>session[:current_task][:start_time]};
+			@meta_tags << {:class=>:min_work_time, :val=>time2sec(min_work_time).to_s}
+			@meta_tags << {:class=>:task,:val=>task}
+			@meta_tags << {:class=>:blob,:val=>blob}
+			
+			@title = "Task #{task}"
+			
+			# ユーザ名などの取得
+			# 新しいタスクに対するhamlファイルをここに書く
+			haml :"contents/task_#{task}"
+		end
+
+
+
+		get '/overwrite' do
+			@title = "データ再登録の確認画面"
+			@meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.min_work_time[:overwrite]).to_s}
+			@new_inputs = session[:temp_inputs]
+			haml :'contents/overwrite'
+		end
+
+		post '/annotation' do
+			login_check
+			curr_time = Time.new
+			mtask = MicroTask.new(_id: params[:_id], worker: params[:worker], time_range: [parse_time(params[:start_time]),curr_time],min_work_time: params[:min_work_time],task: params[:task])
+			mtask.blob = params[:blob] if params.include?(:blob)
+			# 既に登録済みのマイクロタスクかどうかの確認
+			prev_task = MicroTask.duplicate?(params[:_id])
+			if prev_task then
+				if nil == params[:overwrite] then
+					session[:temp_inputs] = {}
+					for key,val in params do
+						session[:temp_inputs][key] = val
+						STDERR.puts "#{key} : #{val}"
+					end
+					redirect '/overwrite', 303
+				else
+					# /overwriteからのpost
+					if nil == prev_task[:history]
+						mtask[:history] = []
+					else
+						mtask[:history] = prev_task[:history]
+						prev_task.delete(:history)
 				end
-        redirect "/task/#{task}/#{blob_id}",303
-    end
+				temp = prev_task.as_json.delete_if{|key,val|
+					DELETE_FROM_HISTORY.include?(key.to_sym)
+				}
+				STDERR.puts temp
+				mtask[:history] << temp
+				MicroTask.delete(params[:_id])
+				end
+			end
+				
 
-    get '/go_on' do
-				redirect "/users"
-        # 前の休憩に入った時間から10分経ったかどうかをチェックしてログイン
-        is_in_rest = false
-        if is_in_rest then
-						@title = "もう少し休憩してください"
-						@comment = "お疲れさまです．残りの休憩時間は○○分○○秒です"
-						haml :'contents/end'
-        else
-            redirect "/task",303
-        end
-    end
-
+			# 新しいタスクに対するannotation結果の保存処理をここに書く!
+			task = params[:task]
+			case task
+				when 'rest' then
+					session[:start] = Time.new
+				when 'test' then
+					mtask[:annotation] = params[:annotation]
+				else
+					STDERR.puts "ERROR: unknown task '#{params[:task]}' is posted."
+			end		
+			
+			unless mtask.save! then
+				raise MyCustomError, "mongodbへのmicrotaskの保存に失敗しました"
+			end		
+			
+			# 現在のマイクロタスクを終了したことを明示
+			session[:current_task] = nil
+			redirect "/task", 303
+		end
 
 end
