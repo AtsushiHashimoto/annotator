@@ -8,3 +8,6 @@
 		%input{:name => "password", :type => "password", :value => ""}
 	%p  
 		%input{:type => "submit", :value => "Log In"}
+- if @message
+	%p= @message
+	%a{:href=>"/sign_up"} sign up?
