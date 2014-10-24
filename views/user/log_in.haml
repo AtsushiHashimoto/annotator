@@ -6,8 +6,12 @@
 	%p  
 		%label{:for => "password"} Password:
 		%input{:name => "password", :type => "password", :value => ""}
-	%p  
+	%p
+		%label{:for => "end_time"} 作業終了予定時間: 
+		%input{:name => "end", :type => "time", :value => @end_time}
+	%p
 		%input{:type => "submit", :value => "Log In"}
 - if @message
 	%p= @message
 	%a{:href=>"/sign_up"} sign up?
+#breakable

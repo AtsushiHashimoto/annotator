@@ -22,7 +22,7 @@ Mongoid.load!("mongoid.yml", :development)
 LOGIN_PATH = "/log_in"
 DELETE_FROM_HISTORY = [:_id,:worker,:blob,:task]
 NULL_TIME = Time.new(1981,1,1,0,0,0)
-END_STATE = ['complete','time_up']
+END_STATE = ['complete','time_up','abort']
 
 class KUSKAnnotator < Sinatra::Base
 	register Helpers::Utils
@@ -100,6 +100,8 @@ class KUSKAnnotator < Sinatra::Base
 		end 
 		@title = "ログイン画面"
 		@message = session[:message]
+		@end_time = guess_end_time.strftime("%H:%M:%S")
+
 		session[:message] = nil
 		session[:start] = Time.new
 		haml :"user/log_in"
@@ -107,14 +109,20 @@ class KUSKAnnotator < Sinatra::Base
 	#login action
 	post '/session' do
 		_user = User.authenticate(params[:email], params[:password])
+		end_time = Time.strptime(params[:end], "%H:%M")
+		end_date = Time.new
+		session[:end] = Time.new(end_date.year,end_date.month,end_date.day,
+														 end_time.hour,end_time.min,0)
+		STDERR.puts session[:end]
 		if _user
 			session[:user_id] = _user._id
-			redirect '/users'
+			redirect '/task'
 		else
 			session[:message] = "log in failed."
 			redirect LOGIN_PATH
 		end
 	end
+
 	#logout action
 	delete '/session' do
 		session[:user_id] = nil
@@ -138,10 +146,10 @@ class KUSKAnnotator < Sinatra::Base
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
 
-		meta_tags = generate_meta_tags
-		meta_tags << {:class=>:task,:val=>'rest'}
-		meta_tags << {:class=>:blob,:val=>blob}
-		meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.rest_time).to_s}
+		@meta_tags = generate_meta_tags
+		@meta_tags << {:class=>:task,:val=>'rest'}
+		@meta_tags << {:class=>:blob,:val=>blob}
+		@meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.rest_time).to_s}
 		@title = "休憩を取って下さい"
 		haml :'contents/rest'
 	end
@@ -161,7 +169,7 @@ class KUSKAnnotator < Sinatra::Base
 		curr_time = Time.new
 		# 終了予定時間のチェック
 		if session[:end] < curr_time then
-			redirect '/end/#{END_STATE[1]}'
+			redirect "/end/#{END_STATE[1]}"
 		end
 		# 休憩の判定
 		if curr_time - session[:start] > time2sec(settings.work_time) then
@@ -178,16 +186,16 @@ class KUSKAnnotator < Sinatra::Base
 			end
 		end			
 		
-		mtask_id = "#{@user.name}::#{task}::#{blob}"
+		mtask_id = "#{@user.name}::#{ticket.task}::#{ticket.blob_id}"
 		if !session[:current_task] or mtask_id == session[:current_task][:id] then
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
-		gen_meta_tags(ticket)
+		@meta_tags = generate_meta_tags(ticket)
 
-		@title = "Task #{task}"
+		@title = "#{ticket.task.upcase} for #{ticket.blob_id}"
 		
 		# 新しいタスクに対するhamlファイルをここに書く
-		haml :"contents/task_#{task}"
+		haml :"contents/#{ticket.task}"
 	end
 
 
@@ -225,7 +233,6 @@ class KUSKAnnotator < Sinatra::Base
 			temp = prev_task.as_json.delete_if{|key,val|
 				DELETE_FROM_HISTORY.include?(key.to_sym)
 			}
-			STDERR.puts temp
 			mtask[:history] << temp
 			MicroTask.delete(params[:_id])
 			end
@@ -249,6 +256,10 @@ class KUSKAnnotator < Sinatra::Base
 		
 		# 現在のマイクロタスクを終了したことを明示
 		session[:current_task] = nil
+		
+		
+		
+		
 		redirect "/task", 303
 	end
 		
