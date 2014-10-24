@@ -1,0 +1,13 @@
+%table.table
+	%tbody
+		%tr 
+			%td Name
+			%td= @user.name
+		%tr 
+			%td Email
+			%td= @user.email
+
+%form#annotation_completion{:action => '/annotation', :method => 'post'}
+	%fieldset
+		%input{:type => "text", :name => "annotation", :value=>"test"}
+		= haml :'common_parts/annotation_submit'
