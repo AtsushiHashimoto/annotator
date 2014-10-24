@@ -1,7 +1,0 @@
-
-# 作業時間(分:秒)
-work_time: '30:00'
-min_work_time:
- rest: '5:00'
- task1: '1:00'
- overwrite: '0:01'
