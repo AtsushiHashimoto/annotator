@@ -31,13 +31,23 @@ module Helpers
 			(Time.utc(0,1,1,0,$1.to_i,$2.to_r) - Time.utc(0,1,1,0,0,0)).to_i
 		end
 		
-		def select_task_or_nil(user)
-			# 完全にrandom?
-			# ボトムアップ?
-			# 深さ優先?
-
-			return 'test',now
-			nil
+		def generate_meta_tags(ticket=nil)
+			meta_tags = []
+			meta_tags << {:class=>:_id,:val=>session[:current_task][:id]}
+			meta_tags << {:class=>:worker, :val=>@user.name}
+			meta_tags << {:class=>:start_time, :val=>session[:current_task][:start_time]};
+			return meta_tags unless ticket
+			meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.min_work_time[ticket.task]).to_s}
+			meta_tags << {:class=>:task,:val=>ticket.task}
+			meta_tags << {:class=>:blob,:val=>ticket.blob}
+			meta_tags << {:class=>:ticket,:val=>ticket._id}
+		end
+		
+		
+		def extract_recipe_id(str)
+				md = str.match(settings.recipe_id_regex)
+				return nil unless md
+				md[1]
 		end
 
 	end
