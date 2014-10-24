@@ -1,7 +1,18 @@
-%p	#{@user.name}さん，お疲れさまでした．
-- if @state=='complete'
-	可能な全てのデータへのタグ付けが終わりました．
-- else
-	作業終了予定時間になりました．
-%p	橋本までお声掛け頂き，次回の勤務予定を確認するなどしてください． 
-%p	<<作業内容を一覧表示．メールで送信を求める?>>
+%p #{@user.name}さん，お疲れさまでした．
+%p
+	- if @state=='complete'
+		可能な全てのデータへのタグ付けが終わりました．
+	- elsif @state=='time_up'
+		作業終了予定時間になりました．
+	- else
+		途中で作業を中断しました．
+	橋本までお声掛け頂き，次回の勤務予定を確認するなどしてください． 
+%p	
+	<<作業内容を一覧表示．メールで送信を求める?>>
+	%form#logout-form{:action => '/session', :method => 'post'}
+		%fieldset
+			%input{:type => "hidden", :name => '_method', :value=>'delete' }
+			%input{:type => "hidden", :name => 'user', :value => @user.name}
+			%input{:type => "hidden", :name => 'end_state', :value => @state}
+			%input{:type => "submit", :value => "作業内容を送信(未実装)してログアウト"}
+#breakable

@@ -2,6 +2,7 @@ jQuery(function ($) {
 			 // global variables
 			 var DEBUG = 1;
        var min_work_time = 0;
+			 var do_break = false;
 
 			 // timerが切れたときに終了するボタンを押せるようにする．
 			 var on_timer_expiration = function(){
@@ -29,9 +30,29 @@ jQuery(function ($) {
 													 });
 			 };
 			 
+			 
+			 var set_unbreakable = function(){
+					if($('#breakable').length>0){
+						return;
+					}
+					$('.breakable_link').click(function(){
+																 do_break = true;
+															});
+					
+					$(window).bind("beforeunload", function() {
+												 if(!do_break){
+													return "作業を終了する場合，右上の「作業を終了する」ボタンを利用してください．\nブラウザの戻るボタンなどは使わないで下さい．";
+												 }
+												 });
+					console.log('set unbreakable');
+			 }
+			 
+			 
+
 			 $(document).ready(function() {
 												 set_timer();
 												 set_logout();
+												 set_unbreakable();
 												 });
 			 
 });

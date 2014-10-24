@@ -3,12 +3,6 @@
 		.nav-collapse
 			%p.navbar-text= @title
 			- if @user
-				%ul.nav.pull-right
-					%li.dropdown
-						%a.dropdown-toggle{:'data-toggle'=>"dropdown"} ログインメニュー
-						%ul.dropdown-menu
-							%li
-								%form#logout-form{:action => '/session', :method => 'post'}
-									%fieldset
-										%input{:type => "hidden", :name => '_method', :value=>'delete' }
-										%a.logout{:href=>"#"} ログアウト
+				%ul.nav.navbar-nav.pull-right
+					%li.active
+					%a.breakable_link{:href=>"/end/abort",} 作業を終了する
