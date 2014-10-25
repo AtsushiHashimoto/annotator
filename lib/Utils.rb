@@ -44,17 +44,16 @@ module Helpers
 		end
 		
 		def generate_meta_tags(ticket=nil)
-			meta_tags = []
-			meta_tags << {:class=>:_id,:val=>session[:current_task][:id]}
-			meta_tags << {:class=>:worker, :val=>@user.name}
-			meta_tags << {:class=>:start_time, :val=>session[:current_task][:start_time]};
+			meta_tags = {}
+			meta_tags[:_id] = session[:current_task][:id]
+			meta_tags[:worker] = @user.name
+			meta_tags[:start_time] = session[:current_task][:start_time];
 			return meta_tags unless ticket
-			STDERR.puts ticket[:task]
-			STDERR.puts settings.min_work_time[ticket[:task]]
-			meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.min_work_time[ticket[:task]]).to_s}
-			meta_tags << {:class=>:task,:val=>ticket[:task]}
-			meta_tags << {:class=>:blob,:val=>ticket[:blob_id]}
-			meta_tags << {:class=>:ticket,:val=>ticket[:_id]}
+			meta_tags[:min_work_time] = time2sec(settings.min_work_time[ticket[:task]]).to_s
+			meta_tags[:task] = ticket[:task]
+			meta_tags[:blob] = ticket[:blob_id]
+			meta_tags[:ticket] = ticket[:_id]
+			meta_tags
 		end
 		
 		

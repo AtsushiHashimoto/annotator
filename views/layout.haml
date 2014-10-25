@@ -19,8 +19,8 @@
 			<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 			<![endif]
 		%link(rel="stylesheet" href="/scss/style")
-		-	@meta_tags.each do |meta_tag|
-			%meta{meta_tag}
+		-	@meta_tags.each do |key, val|
+			%meta{key=>val}
 	%body
 		= haml :'layout/header'
 		%section.main.container

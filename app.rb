@@ -47,6 +47,8 @@ class KUSKAnnotator < Sinatra::Base
 	end
 
 	configure do
+		settings.image_blob_globpath = "#{settings.image_blob_path}/#{settings.image_blob_globpath}"
+		settings.recipe_blob_globpath = "#{settings.recipe_blob_path}/#{settings.recipe_blob_globpath}"
 		session = Moped::Session.new([settings.mongodb])
 		session.use "testdb"
 		Mongoid::Threaded.sessions[:default] = session
@@ -90,7 +92,7 @@ class KUSKAnnotator < Sinatra::Base
 	#共通の処理
 	before do			
 		@user = User.where(_id: session[:user_id]).first
-		@meta_tags = []
+		@meta_tags = {}
 	end
 
 	#login form
@@ -147,9 +149,9 @@ class KUSKAnnotator < Sinatra::Base
 		end
 
 		@meta_tags = generate_meta_tags
-		@meta_tags << {:class=>:task,:val=>'rest'}
-		@meta_tags << {:class=>:blob,:val=>blob}
-		@meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.rest_time).to_s}
+		@meta_tags[:task] = 'rest'
+		@meta_tags[:blob] = blob
+		@meta_tags[:min_work_time] = time2sec(settings.rest_time).to_s
 		@title = "休憩を取って下さい"
 		haml :'contents/rest'
 	end
@@ -203,13 +205,13 @@ class KUSKAnnotator < Sinatra::Base
 
 		@meta_tags = generate_meta_tags(ticket)
 		if task != ticket[:task] or blob_id != ticket[:blob_id]
-			STDERR.puts 'jump via browser function.'
-			for tag in @meta_tags do
-				tag[:val] = "1" if tag[:class] == :min_work_time
-			end
+			# URLとキャッシュが合わない⇢ブラウザの戻るボタン⇢待ち時間を減らす
+			@meta_tags[:min_work_time] = "1"
 		end
 		
-
+		for key,val in @meta_tags do
+			STDERR.puts "#{key} => #{val}"
+		end
 		@title = "#{task.upcase} for #{blob_id}"
 		
 		# 新しいタスクに対するhamlファイルをここに書く
@@ -220,7 +222,7 @@ class KUSKAnnotator < Sinatra::Base
 
 	get '/overwrite' do
 		@title = "データ再登録の確認画面"
-		@meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.min_work_time[:overwrite]).to_s}
+		@meta_tags[:min_work_time] = time2sec(settings.min_work_time[:overwrite]).to_s
 		@new_inputs = session[:temp_inputs]
 		haml :'contents/overwrite'
 	end
@@ -275,9 +277,6 @@ class KUSKAnnotator < Sinatra::Base
 		# 現在のマイクロタスクを終了したことを明示
 		session[:current_task] = nil
 		
-		
-		
-		
 		redirect "/task", 303
 	end
 		
@@ -293,6 +292,13 @@ class KUSKAnnotator < Sinatra::Base
 	get '/ticket/generate/:task' do |task|
 			num = generate_tickets(task)
 			return "#{task}: #{num} ticket(s) are newly generated."
+	end
+	
+	# dataへのアクセス
+	get '/blob_images/*' do
+		path = settings.image_blob_path + "/" +  params[:splat]
+		STDERR.puts path
+		send_file path	
 	end
 
 end
