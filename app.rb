@@ -164,6 +164,7 @@ class KUSKAnnotator < Sinatra::Base
 
   # タスクの表示
 	get '/task' do
+		session[:ticket] = nil
 		login_check
 		
 		curr_time = Time.new
@@ -184,18 +185,35 @@ class KUSKAnnotator < Sinatra::Base
 			unless ticket then
 				redirect '/end/#{END_STATE[0]}', 303
 			end
-		end			
+		end	
+		session[:ticket] = ticket.as_json
+		STDERR.puts "/task/#{ticket.task}/#{ticket.blob_id}"
+		redirect "/task/#{ticket.task}/#{ticket.blob_id}", 303
+	end
 		
-		mtask_id = "#{@user.name}::#{ticket.task}::#{ticket.blob_id}"
+	get '/task/:task/:blob_id' do |task,blob_id|
+		ticket = session[:ticket]
+		redirect '/task', 303 unless ticket
+		ticket = ticket.with_indifferent_access
+		
+		mtask_id = "#{@user.name}::#{task}::#{blob_id}"
 		if !session[:current_task] or mtask_id == session[:current_task][:id] then
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
-		@meta_tags = generate_meta_tags(ticket)
 
-		@title = "#{ticket.task.upcase} for #{ticket.blob_id}"
+		@meta_tags = generate_meta_tags(ticket)
+		if task != ticket[:task] or blob_id != ticket[:blob_id]
+			STDERR.puts 'jump via browser function.'
+			for tag in @meta_tags do
+				tag[:val] = "1" if tag[:class] == :min_work_time
+			end
+		end
+		
+
+		@title = "#{task.upcase} for #{blob_id}"
 		
 		# 新しいタスクに対するhamlファイルをここに書く
-		haml :"contents/#{ticket.task}"
+		haml :"contents/#{task}"
 	end
 
 

@@ -49,10 +49,12 @@ module Helpers
 			meta_tags << {:class=>:worker, :val=>@user.name}
 			meta_tags << {:class=>:start_time, :val=>session[:current_task][:start_time]};
 			return meta_tags unless ticket
-			meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.min_work_time[ticket.task]).to_s}
-			meta_tags << {:class=>:task,:val=>ticket.task}
-			meta_tags << {:class=>:blob,:val=>ticket.blob_id}
-			meta_tags << {:class=>:ticket,:val=>ticket._id}
+			STDERR.puts ticket[:task]
+			STDERR.puts settings.min_work_time[ticket[:task]]
+			meta_tags << {:class=>:min_work_time, :val=>time2sec(settings.min_work_time[ticket[:task]]).to_s}
+			meta_tags << {:class=>:task,:val=>ticket[:task]}
+			meta_tags << {:class=>:blob,:val=>ticket[:blob_id]}
+			meta_tags << {:class=>:ticket,:val=>ticket[:_id]}
 		end
 		
 		
