@@ -1,0 +1,25 @@
+%link(rel="stylesheet" href="/select2/select2.css")
+.col-lg-8.no-padding
+	下のRecipeで使う食材，調味料，道具を全て選んで下さい．
+	%img.full-width{:src=>'/blob_recipes' + @meta_tags[:overview]}
+.col-lg-2
+	.fixed.bg-base-color2.round-border.white.width80
+		%form#annotation_completion{:action => '/annotation', :method => 'post'}
+			%p
+				= "食材"
+				%br
+				%input.task2select#select-ingredient{:type=>'text',:name=>"ingredients", :multiple=>"multiple", :value=>@candidates[:ingredient].join(",")}
+			%p
+				= "調味料"
+				%br
+				%input.task2select#select-seasoning{:type=>'text',:name=>"seasonings", :multiple=>"multiple", :value=>@candidates[:seasoning].join(",")}
+			%p
+				= "調理器具"
+				%br
+				%input.task2select#select-utensil{:type=>'text',:name=>"utensils", :multiple=>"multiple", :value=>@candidates[:utensil].join(",")}
+			%p
+				%fieldset
+					%button.btn.btn-default.reset_canvas{:type=>'button'} 入力内容をリセット
+					= haml :'common_parts/annotation_submit'
+%script(src="/select2/select2.min.js")
+%script(src="/js/task2.js")
