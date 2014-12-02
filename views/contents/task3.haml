@@ -1,0 +1,41 @@
+%link{:rel=>"stylesheet", :href=>"http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"}
+.form.col-lg-12
+	%form#annotation_completion{:action => '/annotation', :method => 'post'}
+		.col-lg-12
+		.no-padding.col-lg-6
+			%canvas#img{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height],:class => "clickable"}
+			%br
+			%button.btn.btn-default#btn-raw_image{:type=>'button'} 画像全体を表示
+			%button.btn.btn-default#btn-mask_image{:type=>'button'} 検出された物体領域のみを表示
+		.no-padding.col-lg-6
+			.input-group
+				- iter = 0
+				- for cand in JSON.parse(@meta_tags[:candidates])
+					%input{:type=>"radio", :id => "radio_#{iter}",:name=>'label',:text=>cand,:value=>cand}
+					%label{:for=>"radio_#{iter}"}
+						= cand
+					%br
+					- iter = iter + 1
+				%input#radio_mixture{:type=>"radio",:name=>'label',:value=>"water"}
+				%label{:for=>"radio_water"}
+					水道のタップ
+				%br
+				%input#radio_mixture{:type=>"radio",:name=>'label',:value=>"mixture"}
+				%label{:for=>"radio_mixture"}
+					混合された食材で名付けられないもの
+				%br
+				
+				%input#radio_container{:type=>"radio",:name=>'label',:value=>"tools_not_in_list"}
+				%label{:for=>"radio_container"}
+					上記以外の容器や調理器具 (種別): 
+					%input#text_container{:type=>"text",:name=>'other_tool',:value=>"ボウル"}
+				%br
+				
+
+		.no-padding.col-lg-12
+			%fieldset
+				%button.btn.btn-default.reset_canvas{:type=>'button'} 入力内容をリセット
+				= haml :'common_parts/annotation_submit'
+%script(src="/js/jcanvas.min.js")
+%script(src="http://code.jquery.com/ui/1.9.2/jquery-ui.js")
+%script(src="/js/task3.js")

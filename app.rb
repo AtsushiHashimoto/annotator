@@ -52,6 +52,9 @@ class KUSKAnnotator < Sinatra::Base
 		session = Moped::Session.new([settings.mongodb])
 		session.use "testdb"
 		Mongoid::Threaded.sessions[:default] = session
+		
+		# task2のためにontologyを読み込む
+		set :synonyms, load_synonyms
 	end
 
 
@@ -144,7 +147,7 @@ class KUSKAnnotator < Sinatra::Base
 
 		blob = now
 		mtask_id = "#{@user.name}::rest::#{blob}"
-		if !session[:current_task] or mtask_id == session[:current_task][:id] then
+		if !session[:current_task] or mtask_id != session[:current_task][:id] then
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
 
@@ -158,7 +161,7 @@ class KUSKAnnotator < Sinatra::Base
 
 	get '/end/:state' do |state|
 		login_check
-		raise MyCustomError, "不正な終了状況'#{state}'です．" unless END_STATE.include?(state)
+		raise 500, "不正な終了状況'#{state}'です．" unless END_STATE.include?(state)
 		@title = "作業終了"
 		@state = state
 		haml :'contents/end'
@@ -179,39 +182,70 @@ class KUSKAnnotator < Sinatra::Base
 			session[:start] = NULL_TIME
 			redirect '/rest', 303			
 		end
-		ticket = Ticket.select_task
+		ticket = Ticket.select_ticket(@user.name)
 		unless ticket then
 			# 一度，生成を試みる
-
-			ticket = Ticket.select_task
+			ticket = Ticket.select_ticket(@user.name)
 			unless ticket then
-				redirect '/end/#{END_STATE[0]}', 303
+				redirect "/end/#{END_STATE[0]}", 303
 			end
 		end	
 		session[:ticket] = ticket.as_json
-		STDERR.puts "/task/#{ticket.task}/#{ticket.blob_id}"
 		redirect "/task/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 		
 	get '/task/:task/:blob_id' do |task,blob_id|
-		ticket = session[:ticket]
-		redirect '/task', 303 unless ticket
-		ticket = ticket.with_indifferent_access
+		task1_inv = false
+		if task == 'task1_inv' then
+			task = 'task1'
+			task1_inv = true
+		end
+		@ticket = session[:ticket]
+		redirect '/task', 303 unless @ticket
+		@ticket = @ticket.with_indifferent_access
+		redirect '/task', 303 unless @ticket[:task] == task
+		redirect '/task', 303 unless @ticket[:blob_id] == blob_id
 		
 		mtask_id = "#{@user.name}::#{task}::#{blob_id}"
-		if !session[:current_task] or mtask_id == session[:current_task][:id] then
+		if !session[:current_task] or mtask_id != session[:current_task][:id] then
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
-
-		@meta_tags = generate_meta_tags(ticket)
-		if task != ticket[:task] or blob_id != ticket[:blob_id]
+		
+		
+		@meta_tags = generate_meta_tags(@ticket)
+		if task != @ticket[:task] or blob_id != @ticket[:blob_id]
 			# URLとキャッシュが合わない⇢ブラウザの戻るボタン⇢待ち時間を減らす
 			@meta_tags[:min_work_time] = "1"
 		end
 		
-		for key,val in @meta_tags do
-			STDERR.puts "#{key} => #{val}"
+		@meta_tags[:put] = blob_id.split(":").include?("PUT")
+
+		if task1_inv then
+			@meta_tags[:inv] = true
+			@meta_tags[:put] = !@meta_tags[:put]
 		end
+
+		case task
+			when 'task1'
+				@meta_tags[:image_width] = settings.image_width
+				@meta_tags[:image_height] = settings.image_height
+				@meta_tags[:diff_image] = generate_diff_image(@ticket[:after_image],@ticket[:before_image], @ticket[:blob_path]);
+				@meta_tags[:mask_image] = generate_mask_image(@ticket[:blob_path])
+			when 'task2'
+				@synonyms = settings.synonyms
+				@candidates = @ticket[:candidates].with_indifferent_access
+				@meta_tags[:list_ingredient] = @synonyms[:ingredient].to_json
+				@meta_tags[:list_utensil   ] = @synonyms[:utensil   ].to_json
+				@meta_tags[:list_seasoning ] = @synonyms[:seasoning ].to_json
+				@meta_tags[:overview] = @ticket[:blob_path] + "/" + settings.task2[:overview]
+			when 'task3'
+				@meta_tags[:image_width] = settings.image_width
+				@meta_tags[:image_height] = settings.image_height
+				@meta_tags[:candidates] = @ticket['candidates'].to_json
+				@meta_tags[:box] = @ticket['box'].to_json
+				@meta_tags[:mask_image] = generate_mask_image(@ticket[:blob_path])
+		end
+		
 		@title = "#{task.upcase} for #{blob_id}"
 		
 		# 新しいタスクに対するhamlファイルをここに書く
@@ -231,7 +265,7 @@ class KUSKAnnotator < Sinatra::Base
 		login_check
 		curr_time = Time.new
 		mtask = MicroTask.new(_id: params[:_id], worker: params[:worker], time_range: [parse_time(params[:start_time]),curr_time],min_work_time: params[:min_work_time],task: params[:task])
-		mtask.blob = params[:blob] if params.include?(:blob)
+		mtask.blob_id = params[:blob_id] #if params.include?(:blob_id)
 		# 既に登録済みのマイクロタスクかどうかの確認
 		prev_task = MicroTask.duplicate?(params[:_id])
 		if prev_task then
@@ -266,16 +300,54 @@ class KUSKAnnotator < Sinatra::Base
 				session[:start] = Time.new
 			when 'test' then
 				mtask[:annotation] = params[:annotation]
+			when 'task1' then
+				unless params[:annotation].empty? then
+					# 空でなければtask1 の結果をパースして保存
+					array =  JSON.parse(params[:annotation]).uniq
+					#画像のサイズで正規化しておく．
+					for i in 0...array.length do
+						array[i] = array[i].with_indifferent_access
+						array[i][:x] = array[i][:x].to_f / settings.image_width
+						array[i][:width] = array[i][:width].to_f / settings.image_width
+						array[i][:y] = array[i][:y].to_f / settings.image_height
+						array[i][:height] = array[i][:height].to_f / settings.image_width
+					end					
+					mtask[:annotation] = array
+				end
+			when 'task2' then
+				targets = [:ingredients,:utensils,:seasonings]
+				for tar in targets do
+					unless params.include?(tar.to_s) then
+						raise 500, "空の入力欄(#{tar})があります"
+					end
+					mtask[tar] = params[tar].split(",")
+				end
+			when 'task3' then
+				STDERR.puts params
+				label = params[:label]
+				case label
+					when 'tools_not_in_list' then
+						mtask[:label] = params[:other_tool]
+					when 'mixture' then
+						mtask[:label] = 'mixture' 
+					else
+						mtask[:label] = params[:label]
+				end
 			else
 				STDERR.puts "ERROR: unknown task '#{params[:task]}' is posted."
-		end		
-		
+		end
+				
+				
 		unless mtask.save! then
-			raise MyCustomError, "mongodbへのmicrotaskの保存に失敗しました"
+			raise 500, "mongodbへのmicrotaskの保存に失敗しました"
 		end		
 		
 		# 現在のマイクロタスクを終了したことを明示
 		session[:current_task] = nil
+		
+		# Ticketの方に登録
+		
+		Ticket::add_annotator(mtask['worker'],mtask['task'],mtask['blob_id'])
 		
 		redirect "/task", 303
 	end
@@ -296,9 +368,14 @@ class KUSKAnnotator < Sinatra::Base
 	
 	# dataへのアクセス
 	get '/blob_images/*' do
-		path = settings.image_blob_path + "/" +  params[:splat]
-		STDERR.puts path
+		path = settings.image_blob_path + "/" +  params[:splat].join("/")
 		send_file path	
 	end
-
+	
+	get '/blob_recipes/*' do
+		path = settings.recipe_blob_path + "/" +  params[:splat].join("/")
+		send_file path	
+	end
+		
+	
 end

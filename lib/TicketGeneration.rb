@@ -1,3 +1,4 @@
+require 'kconv'
 require 'sinatra/extension'
 
 module Helpers
@@ -40,35 +41,104 @@ module Helpers
 			# task3の生成
 			task = 'task3'
 
+			# 設定ファイルで明示しているdependencyを一応チェック． 
 			task_dependency = settings.task_dependency[task]
 			return 0 unless task_dependency.include?('task1') 
 			return 0 unless task_dependency.include?('task2')
 			return 0 unless task_dependency.size == 2
 			
-			self_tickets = Ticket.where(task: task)
-			ignore_ids = self_tickets.map{|ticket| ticket.blob_id}
-
-			seeds = seed_tickets_image(ignore_ids,'task1')
-			recipes = seed_tickets_recipe(ignore_ids, 'task2')
+			existing_tickets = Ticket.where(task: task)
 			
+			seed_task1 = Ticket::where(task:'task1',completion:true)
+			recipes = MicroTask::where(task:'task2')
 			count = 0
-			for seed in seeds do
-					md = seed.blob_id.match(settings.recipe_id_regex)
-					next unless md
-					recipe_id = md[1]
-					STDERR.puts "#{recipe_id} X #{seed.blob_id}"
-			end
+			
+			for seed in seed_task1 do
+				# validate
+				# 本当は複数ユーザからの入力に対して正しい答えを判定したい!!
+				# 別関数で統合を促す．
+				mtask = MicroTask::where(task:'task1',blob_id:seed.blob_id).sample
+				raise "no mtask has been found." unless mtask
+				next unless mtask['annotation']
+				
+				
+
+				# recipeを取得
+				_id = task + "_" + mtask['blob_id']
+				blob_id = mtask['blob_id']
+				blob_path = seed['blob_path']
+
+				# blob_id: 2014RC01_S008:extract:cameraA:PUT:putobject_0003941_061
+				buf = blob_id.split(":")
+				event = buf[-2]
+				obj_id = [buf[0],buf[2],buf[-1].split("_")[-1]].join(":")
+				is_put = (buf[3] == 'PUT')
+				
+				recipe_id = buf[0].split("_")[0]
+			
+				# 本当は複数ユーザからの入力に対して正しい答えを判定したい!!
+				# 別関数で統合を促す．
+				recipe_info = MicroTask::where(task:'task2',blob_id:recipe_id).sample
+				
+				next unless recipe_info
+				
+				is_single_object = (mtask['annotation'].size==1)
+				
+				annotation_count = 0
+				
+				# before imageなどの登録
+				regex = '(.*\/)extract\/(.+\/).+\/\w+_(\d{7})_\d{3}(.png)'
+				md = blob_path.match(regex)
+				raw_image =  md[1..-1].join()
+				
+				# TAKENならraw_imageはbefore imageにする必要がある
+				unless is_put then
+					raw_image = get_prev_file(settings.image_blob_path + raw_image)
+					raw_image = raw_image.sub(settings.image_blob_path, '')
+				end
+				
+				
+				for annotation in mtask['annotation'] do
+						ticket = Ticket.new(_id: _id + "_#{annotation_count}", blob_id: blob_id + "::#{annotation_count}", task: task, blob_path: blob_path, annotator:[])
+						ticket['event'] = event
+						ticket['obj_id'] = obj_id
+						ticket['candidates'] = recipe_info['ingredients'] + recipe_info['seasonings'] + recipe_info['utensils']
+						ticket['box'] = annotation
+						ticket['raw_image'] = raw_image
+
+						if is_single_object then
+							samples = Ticket::where(task:task, obj_id:obj_id).not.where(event:event)
+							if samples.size == 1 then
+								# 既に同じ物体が登録されているので省略する
+								next
+							end								
+						end
+						ticket.save!
+						count = count + 1
+						annotation_count = annotation_count + 1
+				end
+				
+			end			
 			
 			count
 		end
-			
-		def seed_tickets_image(ignore_ids, parent_task)
-			temp = Ticket.where({task: parent_task, completion: true})
-			temp.delete_if{|ticket| ignore_ids.include?(ticket.blob_id)}
-		end
-		
-		def seed_tickets_recipe(ignore_ids, parent_task='task2')
-			Ticket.where({task: parent_task,completion: true})
+
+		def load_nlp_result_csv(dir)
+			files = Dir.glob("#{dir}/*.csv")
+			candidates = Hash.new{|h,k| h[k] = []}
+			for file in files do
+				buf = File.open(file,'r').read.toutf8
+				words = buf.split("\n").map{|v|v.split(",")}.delete_if{|v|v.size < 4}
+				words.map!{|v|v[3].strip}
+				for key,array in settings.synonyms do						
+					for word in words do
+						next unless array.include?(word)
+						candidates[key] << word
+					end
+					candidates[key].uniq!
+				end
+			end
+			candidates
 		end
 		
 		def generate_task2(recipe_blob_globpath, recipe_blob_id_regex)
@@ -76,19 +146,26 @@ module Helpers
 			# task2の生成
 			task = 'task2'
 			count = 0
+			
 			for blob_path in all_blobs do
 					md = blob_path.match(recipe_blob_id_regex)
 					next unless md
 					recipe_id = md[1].gsub("/",":")
+					blob_full_path = blob_path.clone
+					blob_path.sub!(settings.recipe_blob_path,'')
 					
-					next unless check_recipe_files(blob_path)
+					next unless check_recipe_files(blob_full_path)
 					
 					# 既に登録があれば再生成や上書きはしない
 					_id = "#{task}_#{recipe_id}"
 					next if Ticket.duplicate?(_id)
 					
 					count = count + 1
-					ticket = Ticket.new(_id: _id, blob_id: recipe_id, task: task, blob_path: blob_path)
+					ticket = Ticket.new(_id: _id, blob_id: recipe_id, task: task, blob_path: blob_path, annotator:[])
+					
+					# 食材，調理器具，調味料の候補を入れる．
+					ticket[:candidates] = load_nlp_result_csv(blob_full_path)
+					
 					unless ticket.save! then
 						raise MyCustomError, "新規チケットの発行に失敗しました"
 					end					
@@ -97,8 +174,17 @@ module Helpers
 		end
 			
 		def check_recipe_files(path)
+			flag = true;
 			# レシピディレクトリの中に必要なファイルが揃っているかを確認する
-			true
+			if Dir.glob("#{path}/overview.*").empty? then
+				flag = false
+				STDERR.puts "overview.jpgがありません"
+			end
+			if Dir.glob("#{path}/*.csv").empty? then
+				flag = false
+				STDERR.puts "形態素解析結果がありません"	
+			end
+			flag
 		end
 		
 		def generate_task1(image_blob_globpath, image_blob_id_regex)
@@ -110,12 +196,34 @@ module Helpers
 				md = blob_path.match(image_blob_id_regex)
 				next unless md
 				blob_id = md[1].gsub("/",":")
+				blob_path.sub!(settings.image_blob_path, '')
+				
+
+				# before imageなどの登録
+				regex = '(.*\/)extract\/(.+\/).+\/\w+_(\d{7})_\d{3}(.png)'
+				md = blob_path.match(regex);
+				unless md then
+					STDERR.puts "Error: failed to parse blob_path into original image path"
+					STDERR.puts "blob_path: '#{blob_path}'"
+					STDERR.puts "regex: '#{regex}'"
+					next
+				end
 				
 				# 既に登録があれば再生成や上書きはしない
 				_id = "#{task}_#{blob_id}"
 				next if Ticket.duplicate?(_id)
+				ticket = Ticket.new(_id: _id, blob_id: blob_id, task: task, blob_path: blob_path, annotator: [])
+				
+				
+				after_image = md[1..-1].join()
+				ticket[:after_image] = after_image
+				before_image_path = get_prev_file(settings.image_blob_path + after_image)
+				next if before_image_path == nil
+				# 本当はここでnilなら背景画像を返すようにする
+				ticket[:before_image] = before_image_path.sub(settings.image_blob_path, '')
+				
 				count = count + 1
-				ticket = Ticket.new(_id: _id, blob_id: blob_id, task: task, blob_path: blob_path)
+				
 				unless ticket.save! then
 					raise MyCustomError, "新規チケットの発行に失敗しました"
 				end
@@ -123,5 +231,7 @@ module Helpers
 			return count
 		end
 		
+		
+
 	end
 end
