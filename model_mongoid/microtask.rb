@@ -1,4 +1,5 @@
 require 'mongoid'
+#require 'mongoid-versioning'
 require 'bcrypt'
 
 class MicroTask
@@ -8,7 +9,7 @@ class MicroTask
 	field :time_range, type: Array
 	field :min_work_time, type: Integer
 	field :task
-	field :blob
+	field :blob_id
 	# annotation data are added as custom field.
 	# e.g.
 	# mtask = MicroTask.new(..省略..)

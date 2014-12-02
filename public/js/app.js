@@ -6,16 +6,15 @@ jQuery(function ($) {
 
 			 // timerが切れたときに終了するボタンを押せるようにする．
 			 var on_timer_expiration = function(){
-					$('#keep_old').show(0);
-					$('#go_to_next').show(0);
+					$('.timer-hide').show(0);
 			 };
 			 
 			 
 			 
 			 var set_timer = function(){
 			 
-				if($('.min_work_time').length){
-				 min_work_time = Number($('.min_work_time').attr('val'));
+				if($('#meta-min_work_time').length){
+				 min_work_time = Number($('#meta-min_work_time').attr('value'));
 			   $('.timer').countdown({until: min_work_time, compact: true, layout: '{mnn}{sep}{snn}', description: '', onExpiry: on_timer_expiration});
 				}
 				else{
@@ -44,15 +43,25 @@ jQuery(function ($) {
 													return "作業を終了する場合，右上の「作業を終了する」ボタンを利用してください．\nブラウザの戻るボタンなどは使わないで下さい．";
 												 }
 												 });
-					console.log('set unbreakable');
+//					console.log('set unbreakable');
 			 }
 			 
+			 var set_skip = function(){
+				$('.skip').click(function(){
+												 var result = confirm("このタスクを飛ばしてもよろしいですか?");
+												 if(result){
+													window.location.href = '/task'
+												 }
+												 });
+			 };
 			 
 
 			 $(document).ready(function() {
 												 set_timer();
 												 set_logout();
 												 set_unbreakable();
+												 set_skip();
+												 custom_function();
 												 });
 			 
 });

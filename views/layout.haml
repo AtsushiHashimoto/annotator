@@ -20,7 +20,11 @@
 			<![endif]
 		%link(rel="stylesheet" href="/scss/style")
 		-	@meta_tags.each do |key, val|
-			%meta{key=>val}
+			%meta{:id=>"meta-#{key}",:name => key, :value=>val}
+
+		%script(src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js")
+		:javascript
+			var custom_function = function(){};
 	%body
 		= haml :'layout/header'
 		%section.main.container
@@ -31,7 +35,6 @@
 		%footer.container
 			= haml :'layout/footer'
 
-		%script(src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js")
 		%script(src="/js/bootstrap.min.js")
 		%script(src="/jquery.countdown.package/jquery.plugin.min.js")
 		%script(src="/jquery.countdown.package/jquery.countdown.min.js")

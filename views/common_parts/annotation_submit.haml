@@ -1,3 +1,5 @@
-- @meta_tags.each do |name, val|
-	%input{:type => "hidden", :name => name, :value => val}
-%input#go_to_next.breakable_link{:type => "submit", :value=>"次へ"}
+- [:_id, :worker, :task, :blob_id, :start_time, :min_work_time].each do |key|
+	%input{:type => "hidden", :name => key, :value => @meta_tags[key]}
+- unless "rest" == @meta_tags[:task] 
+	%button.btn.btn-warning.breakable_link.timer-hide.skip{:type=>"button"} スキップ
+%button.btn.btn-success.breakable_link.timer-hide.go_to_next{:type=>"submit"} 次へ

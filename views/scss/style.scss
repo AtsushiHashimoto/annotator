@@ -31,7 +31,7 @@ body{
 
 	/* Header */
 	.navbar{
-		height:$header_height;
+		height:5%;
 		background: $no_color;
 		border:0;
 		p.navbar-text{
@@ -64,7 +64,7 @@ body{
 
 	section.main{	
 		margin-top: $header_height;
-		height:90%;
+		min-height:90%;
 
 		/* Common */
 		.main_field{
@@ -76,15 +76,13 @@ body{
 			background-color: $base_col;
 			height:100%;
 
-			#go_to_next{
-				display:none;
-			}
-			#keep_old{
+			.timer-hide{
 				display:none;
 			}
 		}
 
 		.left_side{
+			
 			padding-top: $padding-vert;
 			padding-bottom: $padding-vert;
 			padding-left: $padding-side;
@@ -102,7 +100,74 @@ body{
 				border:0;
 			}
 		}
+		.no-padding{
+			padding: 0 0 0 0;
+		}
+		.no-margin{
+			margin: 0 0 0 0;
+		}
 		
 	}
+
+	/* その他 */
+	.full-width{
+		width: 100%;
+	}
+	.width80{
+		width:25%;
+	}
+	.full-height{
+		height: 100%;
+	}
+
+	.float-left{
+		float:left;
+	}
+	.margin-right{
+		margin-right: $margin-side;
+	}
+	.vertical_slidebar{
+		margin-top: $margin-vert;
+		margin-right: $margin-side;
+		float: left;
+	}
+
+	/* Task 1 */
+	canvas.clickable{
+		border: 2px solid red;
+	}
+
+	/* portamento.js */
+	#portamento_container {
+		float:right; 
+		position:relative;
+	}
+
+	#floating_sidebar {
+		float:none; 
+		position:fixed;
+	}
+
+	.fixed {
+		position:fixed;
+	}
+	.bg-base-color2{
+		background-color:$base_col2;
+	}
+	.scrollable{
+		overflow:scroll;
+	}
+	.round-border{
+		border-radius: 10px 10px 10px 10px / 10px 10px 10px 10px;
+		padding: 10px 10px 10px 10px;
+	}
+	.white, .white a {
+		color: #fff;
+	}
+
+	.task2select{
+		width: 100%;
+	}
+
 }
 

@@ -5,6 +5,5 @@
 		%input{:type => "hidden", :name => "overwrite", :value=>'any_value'}
 		- @new_inputs.each do |key,val|
 			%input{:type => "hidden", :name => key, :value => val}
-		%input#go_to_next.breakable_link{:type => "submit", :value=>"上書きする"}
-%form{:action => '/task', :method => 'get'}
-	%input#keep_old.breakable_link{:type => "submit", :value=>"前の入力を保持する"}
+		%button.btn.btn-warning.breakable_link.timer-hide.skip{:type=>"button"} 前の入力を保持する
+		%button.btn.btn-success.breakable_link.timer-hide.go_to_next{:type=>"submit"} 上書きして次へ

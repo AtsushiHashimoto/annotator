@@ -3,6 +3,7 @@ require 'bcrypt'
 
 class Ticket
 	include Mongoid::Document
+	include Mongoid::Timestamps
 
 	# fields (presence: true)
 	field :blob_id
@@ -12,7 +13,7 @@ class Ticket
 
 	# fields (presence: true)
 	field :recipe
-	field :microtask_ids, type: Array
+	field :annotator, type: Array
 
 
 	validates :blob_id, presence: true
@@ -32,8 +33,32 @@ class Ticket
 		ticket.save
 	end
 
-	def self.select_task
-		self.where(completion:false).sample
+	def self.select_ticket(annotator)
+		STDERR.puts annotator
+		self.where(completion:false).not.any_in(:annotator=>[annotator]).sample
+#, :annotator=>{"$elemMatch"=>{"$regex"=>/#{annotator}/}}}).sample
+
 	end
 
+	# 指定されたアノテータをticketに追加
+	def self.add_annotator(annotator, task, blob_id, max_task_num=1)
+		return if task == 'rest'
+		ticket = self.where({:task=>task,:blob_id=>blob_id})
+		raise "ticket not found." if ticket.empty?
+		ticket = ticket[0]
+#		STDERR.puts annotator
+#		STDERR.puts task
+#		STDERR.puts blob_id
+
+		return if ticket.annotator.include?(annotator)
+
+		ticket.annotator << annotator
+		if ticket.annotator.size >= max_task_num then
+			ticket.completion = true
+		end
+
+		unless ticket.save! then
+				raise "failed to update ticket."
+		end
+	end
 end 
