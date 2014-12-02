@@ -6,7 +6,7 @@ require 'app.rb'
 class Application < Sinatra::Base
     use KUSKAnnotator
 
-		MyCustomError = 10000
+		set :MyCustomError, 10000
 
 		set :port, 4568
 		#set :raise_errors, false #development環境でエラー処理のテストをする．
@@ -20,13 +20,10 @@ class Application < Sinatra::Base
 
 		error do
 			@message = env['sinatra.error'].name
+			@message += "<br>" + env['sinatra.error'].message
 			haml :error, :layout=>:layout_error			
 		end
 
-		error MyCustomError do
-			@message = env['sinatra.error'].message
-			haml :error, :layout=>:layout_error
-		end
 
 end
 
