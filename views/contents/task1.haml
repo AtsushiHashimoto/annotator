@@ -1,17 +1,12 @@
-- put = 0
-- put = 1 if @meta_tags[:put]
 %link{:rel=>"stylesheet", :href=>"http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"}
 .form.col-lg-12
 	%form#annotation_completion{:action => '/annotation', :method => 'post'}
 		.col-lg-12
-			- if put > 0
-				検出された領域の中で，左では調理台に置かれていなくて右では置かれているものを，物体毎に長方形で囲って下さい．
-			- else
-				検出された領域の中で，左では調理台に置かれていて右で手に取られているものを，物体毎に長方形で囲って下さい．
+			下の2枚の画像のうち，検出領域の中で，左(右)にあって右(左)にない物体を囲ってください．
 		.no-padding.col-lg-12
 			#diff_slider.float-left.vertical_slidebar{:style=>"height:#{@meta_tags[:image_height]-10}px;"}
-			%canvas#img-before{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height],:class => "#{"clickable"*(put-1).abs}"}
-			%canvas#img-after{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height], :class => "#{"clickable"*put}"}
+			%canvas#img-before{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height], :type=>'taken'}"}
+			%canvas#img-after{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height], :type=>'put'}"}
 			%br
 			%button.btn.btn-default#btn-raw_image{:type=>'button'} 画像全体を表示
 			%button.btn.btn-default#btn-mask_image{:type=>'button'} 検出された物体領域のみを表示
@@ -22,8 +17,8 @@
 				%textarea#annotation.full-width{ :rows=>'3', :name=>'annotation'}
 				%button.btn.btn-default.reset_canvas{:type=>'button'} 入力内容をリセット
 				- unless @meta_tags.include?(:inv)
-					%a{:href=>"/task/task1_inv/#{@meta_tags[:blob_id]}"}
-						%button.btn.btn-default#put_taken_inv.breakable_link{:type=>'button'} 置かれた⇔取られた
+					/ %a{:href=>"/task/task1_inv/#{@meta_tags[:blob_id]}"}
+					/	%button.btn.btn-default#put_taken_inv.breakable_link{:type=>'button'} 置かれた⇔取られた
 				= haml :'common_parts/annotation_submit'
 %script(src="/js/jcanvas.min.js")
 %script(src="http://code.jquery.com/ui/1.9.2/jquery-ui.js")

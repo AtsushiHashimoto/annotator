@@ -8,7 +8,6 @@ jQuery(function ($) {
 			 var img_src_after;
 			 var image_width;
 			 var image_height;
-			 var type;
 
 			 
 			 
@@ -55,6 +54,7 @@ jQuery(function ($) {
 				 var top = Math.min(point1.y, point2.y);
 				 var width = Math.abs(point1.x - point2.x);
 				 var height = Math.abs(point1.y - point2.y);
+				 var type = $(id).attr('type');
 				 rect = {'x':left,'y':top,'width':width,'height':height, 'type':type};
 				 point1 = {};
 				 point2 = {};
@@ -62,6 +62,8 @@ jQuery(function ($) {
 				 rects.push(rect);
 				 // formの更新をする
 				 $('#annotation').val(JSON.stringify(rects));
+				$(id).setLayer('float',{visible:false});
+
 
 				 return DrawFixedRect(id,rect);
 			 }
@@ -143,6 +145,19 @@ jQuery(function ($) {
 													compositing:'darker',
 													visible: false
 																					 });});
+			 
+			  $(id).addLayer({
+											type: 'rectangle',
+											layer: true,
+											name: 'float',
+											draggable: false,
+											strokeStyle: '#ff0000',
+											strokeWidth: 1,
+											x: 0, y: 0,
+											width: 50, height: 50,
+											fromCenter: false,
+											visible: false
+											}).drawLayers();
 				$(id).setLayer('float',{visible: false}).drawLayers();
 				
 				console.log(rects.length);
@@ -152,8 +167,7 @@ jQuery(function ($) {
 											});
 			 }
 			 
-			 var makeCanvasClickable = function(){
-					id = '.clickable'
+			 var makeCanvasClickable = function(id){
 					$(id).mousedown(function myMouseDown(evt) {
 													var rect = $(evt.target).offset();
 													var x = evt.pageX - rect.left;
@@ -178,19 +192,7 @@ jQuery(function ($) {
 													var y = evt.pageY - rect.top;
 													point2 = {x: x, y: y};
 													DrawFloatRect(id,point1,point2);
-												});					
-					$(id).addLayer({
-												 type: 'rectangle',
-												 layer: true,
-												 name: 'float',
-												 draggable: false,
-												 strokeStyle: '#ff0000',
-												 strokeWidth: 1,
-												 x: 0, y: 0,
-												 width: 50, height: 50,
-												 fromCenter: false,
-												 visible: false
-												 }).drawLayers();
+												});
 			 };
 			 
 			 
@@ -217,7 +219,8 @@ jQuery(function ($) {
 				rects = [];
 				load_meta_data();
 				reset_canvas_with_mask();
-				makeCanvasClickable('.clickable');
+				makeCanvasClickable('#img-before');
+				makeCanvasClickable('#img-after');
 				$('.reset_canvas').click(function(){reset_all();});
 			  // スライドバー(スライダー)を作る
 			  $("#diff_slider").slider({value:1.0, min:0,max:1,step:0.05,change:brend,orientation:'vertical'});
