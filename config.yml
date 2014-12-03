@@ -1,0 +1,68 @@
+# 作業のリスト(配列順にTicketの生成が試行される)
+tasks:
+- 'task6'
+- 'task5'
+- 'task4'
+- 'task3'
+- 'task2'
+- 'task1'
+
+# 作業生成時の依存関係
+task_dependency:
+task6:
+- 'task3'
+- 'task4'
+task5:
+- 'task3'
+task4:
+- 'task3'
+task3:
+- 'task1'
+- 'task2'
+task2:
+task1:
+
+# 基本的な合計作業時間(分:秒)
+standard_total_work_time: '90:00'
+
+# 休憩時間(分:秒)
+rest_time: '0:03'
+
+# 休憩までの作業時間(分:秒)
+work_time: '20:00'
+
+# 各作業にかけて欲しい最低時間
+min_work_time:
+test: '0:04'
+task1: '0:02'
+task2: '0:01'
+task3: '0:01'
+overwrite: '0:01'
+
+mongodb: 'localhost:27017'
+mongodb_session: 'testdb'
+
+
+# データの置き場所とパースのルール
+image_blob_path: '/Users/yuki/annotator/blob_images'
+image_blob_globpath: '*/extract/camera?/*/*.png'
+image_blob_id_regex: '\A.*\/blob_images\/(.+)\.png\Z'
+
+recipe_blob_path: '/Users/yuki/annotator/blob_recipes'
+recipe_blob_globpath: '*'
+recipe_blob_id_regex: '\A.*\/blob_recipes/(.+)\Z'
+recipe_id_regex: '.*(2014RC\d\d).*'
+
+# 画像表示サイズ
+# 1040 x 776
+image_width: 416 #520
+image_height: 310.4 #388
+
+
+# 各タスク特有のパラメタ
+task1:
+modulation: 150
+
+task2:
+- synonims: '/Users/yuki/recipesentenceclustering/ontology/synonym.tsv'
+- overview: 'overview.jpg'

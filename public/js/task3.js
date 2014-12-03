@@ -73,7 +73,7 @@ jQuery(function ($) {
 			 
 			 custom_function = function(){
 					load_meta_data();
-					print_blob_image();
+					print_mask_image();
 					$('#btn-mask_image').click(print_mask_image);
 					$('#btn-raw_image').click(print_raw_image);
 			 };
