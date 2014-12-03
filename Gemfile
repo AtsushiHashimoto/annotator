@@ -11,3 +11,7 @@ gem 'activesupport'
 # user authentification
 gem 'bcrypt'
 gem 'mongoid'
+
+
+gem ‘sass’
+gem ‘haml’
