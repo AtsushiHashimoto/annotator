@@ -72,7 +72,6 @@ module Helpers
 				buf = blob_id.split(":")
 				event = buf[-2]
 				obj_id = [buf[0],buf[2],buf[-1].split("_")[-1]].join(":")
-				is_put = (buf[3] == 'PUT')
 				
 				recipe_id = buf[0].split("_")[0]
 			
@@ -89,14 +88,7 @@ module Helpers
 				# before imageなどの登録
 				regex = '(.*\/)extract\/(.+\/).+\/\w+_(\d{7})_\d{3}(.png)'
 				md = blob_path.match(regex)
-				raw_image =  md[1..-1].join()
-				
-				# TAKENならraw_imageはbefore imageにする必要がある
-				unless is_put then
-					raw_image = get_prev_file(settings.image_blob_path + raw_image)
-					raw_image = raw_image.sub(settings.image_blob_path, '')
-				end
-				
+			
 				
 				for annotation in mtask['annotation'] do
 						ticket = Ticket.new(_id: _id + "_#{annotation_count}", blob_id: blob_id + "::#{annotation_count}", task: task, blob_path: blob_path, annotator:[])
@@ -104,6 +96,21 @@ module Helpers
 						ticket['obj_id'] = obj_id
 						ticket['candidates'] = recipe_info['ingredients'] + recipe_info['seasonings'] + recipe_info['utensils']
 						ticket['box'] = annotation
+						
+						
+						type = annotation['type']
+						STDERR.puts type
+						
+						raw_image =  md[1..-1].join()
+						if type == 'put' then
+							# do nothing
+						elsif type == 'taken' then
+							raw_image = get_prev_file(settings.image_blob_path + raw_image)
+							raw_image = raw_image.sub(settings.image_blob_path, '')
+						else
+							raise "Unknown annotation type '#{type}' for micro task _id: #{mtask['_id']}."
+						end
+						
 						ticket['raw_image'] = raw_image
 
 						if is_single_object then
