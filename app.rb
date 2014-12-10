@@ -195,11 +195,6 @@ class KUSKAnnotator < Sinatra::Base
 	end
 		
 	get '/task/:task/:blob_id' do |task,blob_id|
-		task1_inv = false
-		if task == 'task1_inv' then
-			task = 'task1'
-			task1_inv = true
-		end
 		@ticket = session[:ticket]
 		redirect '/task', 303 unless @ticket
 		@ticket = @ticket.with_indifferent_access
@@ -216,13 +211,6 @@ class KUSKAnnotator < Sinatra::Base
 		if task != @ticket[:task] or blob_id != @ticket[:blob_id]
 			# URLとキャッシュが合わない⇢ブラウザの戻るボタン⇢待ち時間を減らす
 			@meta_tags[:min_work_time] = "1"
-		end
-		
-		@meta_tags[:put] = blob_id.split(":").include?("PUT")
-
-		if task1_inv then
-			@meta_tags[:inv] = true
-			@meta_tags[:put] = !@meta_tags[:put]
 		end
 
 		case task
