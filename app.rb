@@ -32,7 +32,6 @@ class KUSKAnnotator < Sinatra::Base
 	enable :sessions
 	set :session_secret, "My session secret"
 	
-	
 	# configureは宣言順に実行される．
 	configure do        
 		#Load configure file
@@ -56,7 +55,6 @@ class KUSKAnnotator < Sinatra::Base
 		# task2のためにontologyを読み込む
 		set :synonyms, load_synonyms
 	end
-
 
 	get '/scss/:basename' do |basename|
 		scss :"scss/#{basename}"
@@ -86,7 +84,7 @@ class KUSKAnnotator < Sinatra::Base
 		user.encrypt_password(params[:password])
 		if user.save!
 			session[:user_id] = user._id
-			redirect "/users" #user dashboard page
+			redirect "/task" #user dashboard page
 		else
 			redirect "/sign_up"
 		end
@@ -111,6 +109,7 @@ class KUSKAnnotator < Sinatra::Base
 		session[:start] = Time.new
 		haml :"user/log_in"
 	end
+
 	#login action
 	post '/session' do
 		_user = User.authenticate(params[:email], params[:password])
@@ -134,13 +133,11 @@ class KUSKAnnotator < Sinatra::Base
 		redirect LOGIN_PATH
 	end
 
-
 	# session内部のページ
 	get '/' do
 		login_check
 		redirect "/task",303
 	end
-
 
 	get '/rest' do
 		login_check
@@ -193,7 +190,7 @@ class KUSKAnnotator < Sinatra::Base
 		session[:ticket] = ticket.as_json
 		redirect "/task/#{ticket.task}/#{ticket.blob_id}", 303
 	end
-		
+
 	get '/task/:task/:blob_id' do |task,blob_id|
 		@ticket = session[:ticket]
 		redirect '/task', 303 unless @ticket
