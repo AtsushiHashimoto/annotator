@@ -83,8 +83,9 @@ class KUSKAnnotator < Sinatra::Base
 		user = User.new(email: params[:email], name: params[:name])
 		user.encrypt_password(params[:password])
 		if user.save!
+			session[:start] = Time.new
 			session[:user_id] = user._id
-			end_time = Time.strptime(params[:end], "%H:%M")
+			end_time = guess_end_time
 			end_date = Time.new
 			session[:end] = Time.new(end_date.year,end_date.month,end_date.day,
 														 end_time.hour,end_time.min,0)
