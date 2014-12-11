@@ -1,7 +1,7 @@
 development:
  sessions:
   default:
-   database: kusk_annotation_development
+   database: kusk_annotation
    hosts:
     - localhost:27017
 
