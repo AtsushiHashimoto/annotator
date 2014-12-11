@@ -79,11 +79,15 @@ class KUSKAnnotator < Sinatra::Base
 		if params[:password] != params[:confirm_password]
 			redirect "/sign_up"
 		end
-		
+
 		user = User.new(email: params[:email], name: params[:name])
 		user.encrypt_password(params[:password])
 		if user.save!
 			session[:user_id] = user._id
+			end_time = Time.strptime(params[:end], "%H:%M")
+			end_date = Time.new
+			session[:end] = Time.new(end_date.year,end_date.month,end_date.day,
+														 end_time.hour,end_time.min,0)
 			redirect "/task" #user dashboard page
 		else
 			redirect "/sign_up"
@@ -117,7 +121,6 @@ class KUSKAnnotator < Sinatra::Base
 		end_date = Time.new
 		session[:end] = Time.new(end_date.year,end_date.month,end_date.day,
 														 end_time.hour,end_time.min,0)
-		STDERR.puts session[:end]
 		if _user
 			session[:user_id] = _user._id
 			redirect '/task'
