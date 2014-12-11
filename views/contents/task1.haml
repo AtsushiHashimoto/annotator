@@ -14,7 +14,7 @@
 			%br
 		.no-padding.col-lg-12
 			%fieldset
-				%textarea#annotation.full-width{ :rows=>'3', :name=>'annotation'}
+				%textarea#annotation.full-width{ :rows=>'3', :name=>'annotation', :readonly=>true}
 				%button.btn.btn-default.reset_canvas{:type=>'button'} 入力内容をリセット
 				- unless @meta_tags.include?(:inv)
 					/ %a{:href=>"/task/task1_inv/#{@meta_tags[:blob_id]}"}
