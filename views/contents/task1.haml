@@ -2,7 +2,11 @@
 .form.col-lg-12
 	%form#annotation_completion{:action => '/annotation', :method => 'post'}
 		.col-lg-12
-			下の2枚の画像のうち，検出領域の中で，左(右)にあって右(左)にない物体を囲ってください．
+			以下のいずれかに該当する物体を全て四角で囲って下さい．
+			%ol
+				%li 左の画像に存在する物体のうち，机に置かれているもので，かつ，右の画像で人の手に取られているもの
+				%li 右の画像に存在する物体のうち，机に置かれているもので，かつ，左の画像の同じ位置には存在しないもの	
+				%li 水道のタップで，動かされたと判断されるもの（水を流し始めた→右，水を止めた→左，どうしてもわからない→右，を囲む）
 		.no-padding.col-lg-12
 			#diff_slider.float-left.vertical_slidebar{:style=>"height:#{@meta_tags[:image_height]-10}px;"}
 			%canvas#img-before{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height], :type=>'taken'}"}
