@@ -75,7 +75,7 @@ class KUSKAnnotator < Sinatra::Base
 	end 
 
 	#signup action
-	post '/users' do
+	post '/sign_up' do
 		if params[:password] != params[:confirm_password]
 			redirect "/sign_up"
 		end
@@ -362,5 +362,11 @@ class KUSKAnnotator < Sinatra::Base
 		send_file path	
 	end
 		
-	
+		
+	#アノテーションのhelpへのリンク
+	get '/help/:task' do |task|
+		@title = "#{task.upcase}のHelp"
+
+		haml :"help/#{task}", :layout=>:layout_help
+	end
 end
