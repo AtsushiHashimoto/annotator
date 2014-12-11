@@ -29,8 +29,9 @@ class KUSKAnnotator < Sinatra::Base
 	register Helpers::TicketGeneration
 
 	use Rack::MethodOverride
-	enable :sessions
-	set :session_secret, "My session secret"
+#	enable :sessions
+#	set :session_secret, "My session secret"
+	use Rack::Session::Cookie, :key=>'rack.session',:path=>'/',:secret=>'My session secret'
 	
 	# configureは宣言順に実行される．
 	configure do        
@@ -98,11 +99,14 @@ class KUSKAnnotator < Sinatra::Base
 	#共通の処理
 	before do			
 		@user = User.where(_id: session[:user_id]).first
+		STDERR.puts 'in before do'
+		STDERR.puts @user
 		@meta_tags = {}
 	end
 
 	#login form
 	get LOGIN_PATH do
+		session.clear
 		if @user
 			redirect '/task'
 		end 
@@ -111,7 +115,6 @@ class KUSKAnnotator < Sinatra::Base
 		@end_time = guess_end_time.strftime("%H:%M:%S")
 
 		session[:message] = nil
-		session[:start] = Time.new
 		haml :"user/log_in"
 	end
 
@@ -120,6 +123,7 @@ class KUSKAnnotator < Sinatra::Base
 		_user = User.authenticate(params[:email], params[:password])
 		end_time = Time.strptime(params[:end], "%H:%M")
 		end_date = Time.new
+		session[:start] = Time.new
 		session[:end] = Time.new(end_date.year,end_date.month,end_date.day,
 														 end_time.hour,end_time.min,0)
 		if _user
@@ -179,6 +183,8 @@ class KUSKAnnotator < Sinatra::Base
 			redirect "/end/#{END_STATE[1]}"
 		end
 		# 休憩の判定
+		puts curr_time
+		puts session[:start]
 		if curr_time - session[:start] > time2sec(settings.work_time) then
 			session[:start] = NULL_TIME
 			redirect '/rest', 303			
@@ -251,6 +257,8 @@ class KUSKAnnotator < Sinatra::Base
 	end
 
 	post '/annotation' do
+		STDERR.puts 'in post /annotation do'
+		STDERR.puts @user
 		login_check
 		curr_time = Time.new
 		mtask = MicroTask.new(_id: params[:_id], worker: params[:worker], time_range: [parse_time(params[:start_time]),curr_time],min_work_time: params[:min_work_time],task: params[:task])
