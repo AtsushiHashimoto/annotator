@@ -7,6 +7,7 @@ gem 'sinatra-contrib'
 gem 'json'
 gem 'nokogiri'
 gem 'activesupport'
+gem 'munkres'
 
 # user authentification
 gem 'bcrypt'

@@ -31,6 +31,7 @@ GEM
       connection_pool (~> 2.0)
       optionable (~> 0.2.0)
     multi_json (1.10.1)
+    munkres (0.1.0)
     nokogiri (1.6.5)
       mini_portile (~> 0.6.0)
     optionable (0.2.0)
@@ -68,6 +69,7 @@ DEPENDENCIES
   haml
   json
   mongoid
+  munkres
   nokogiri
   sass
   sinatra
