@@ -34,13 +34,19 @@ class Ticket
 	end
 
 	def self.select_ticket(annotator)
-		STDERR.puts annotator
-		self.where(completion:false).not.any_in(:annotator=>[annotator]).sample
+		#番号の若いレシピから順に選ぶ
+		for i in 1..20 do
+			recipe_id = "2014RC#{"%02d"%i}"
+			sample = self.where(blob_id:/#{recipe_id}/, completion:false).not.any_in(:annotator=>[annotator]).sample
+			return sample if sample
+		end
+		return nil
 #, :annotator=>{"$elemMatch"=>{"$regex"=>/#{annotator}/}}}).sample
 
 	end
 
 	# 指定されたアノテータをticketに追加
+=begin
 	def self.add_annotator(annotator, task, blob_id, max_task_num=1)
 		return if task == 'rest'
 		ticket = self.where({:task=>task,:blob_id=>blob_id})
@@ -61,4 +67,5 @@ class Ticket
 				raise "failed to update ticket."
 		end
 	end
+=end
 end 
