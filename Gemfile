@@ -13,5 +13,5 @@ gem 'bcrypt'
 gem 'mongoid'
 
 
-gem ‘sass’
-gem ‘haml’
+gem 'sass'
+gem 'haml'

@@ -134,6 +134,26 @@ module Helpers
 			end
 			return output_image.sub(settings.image_blob_path,"")
 		end
-
+		
+		###############################
+		## MongoDB 操作関連
+		###############################
+		def search(collection_class,task,blob_id, expectation=:singleton)
+			records = collection_class.where({:task=>task,:blob_id=>blob_id})
+			if expectation==:singleton then
+				raise "No record has been found." if records.empty?
+				raise "Too many records are found." if records.size > 1
+				return records[0]
+			end
+			
+			raise "No record has been found." if records.empty? and expectation==:exist	
+			return records
+		end
+		
+		def search_micro_tasks(ticket)
+			puts ticket.task
+			puts ticket.blob_id
+			return search(MicroTask, ticket.task, ticket.blob_id, :no_expectation)
+		end
 	end
 end
