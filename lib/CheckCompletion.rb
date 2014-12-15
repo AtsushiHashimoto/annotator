@@ -44,10 +44,15 @@ module Helpers
 		end
 		def similarity_of_box(a,b)
 			return 0 if a['type'] != b['type']
+			return 0 if a['width']==0 or a['height']==0
+			return 0 if b['width']==0 or b['height']==0
 			area_a = a['width'] * a['height']
 			area_b = b['width'] * b['height']
 			c = common_area(a,b)
+			return 0 if c['width'] <= 0
+			return 0 if c['height'] <= 0
 			area_c = c['width'] * c['height']
+			
 			return 2*area_c/(area_a+area_b)
 		end
 
