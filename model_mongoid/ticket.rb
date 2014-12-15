@@ -41,7 +41,7 @@ class Ticket
 	end
 
 	# 指定されたアノテータをticketに追加
-	def self.add_annotator(annotator, task, blob_id, max_task_num=1)
+	def self.add_annotator(annotator, task, blob_id, max_task_num=2)
 		return if task == 'rest'
 		ticket = self.where({:task=>task,:blob_id=>blob_id})
 		raise "ticket not found." if ticket.empty?
