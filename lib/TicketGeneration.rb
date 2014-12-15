@@ -56,8 +56,8 @@ module Helpers
 			for seed in seed_task1 do
 				# validate
 				# 本当は複数ユーザからの入力に対して正しい答えを判定したい!!
-				# 別関数で統合を促す．
-				mtask = MicroTask::where(task:'task1',blob_id:seed.blob_id).sample
+				# 別関数で統合を促す．(←答えの一致はチェック済み→どれを選んでも一緒)
+				mtask = MicroTask::where(task:'task1',blob_id:seed.blob_id)[0]
 				raise "no mtask has been found." unless mtask
 				next unless mtask['annotation']
 				
