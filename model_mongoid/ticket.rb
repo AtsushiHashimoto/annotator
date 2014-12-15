@@ -37,6 +37,12 @@ class Ticket
 		#番号の若いレシピから順に選ぶ
 		for i in 1..20 do
 			recipe_id = "2014RC#{"%02d"%i}"
+			
+			if rand < 0.2 then
+				sample = self.where(blob_id:/#{recipe_id}/, task: "task2", completion:false).not.any_in(:annotator=>[annotator]).sample
+				return sample if sample
+			end
+			
 			sample = self.where(blob_id:/#{recipe_id}/, completion:false).not.any_in(:annotator=>[annotator]).sample
 			return sample if sample
 		end
