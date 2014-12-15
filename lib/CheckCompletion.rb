@@ -56,7 +56,23 @@ module Helpers
 			# check the number of boxes.
 			flag = true
 			results = annotations.combination(2){|a,b|
-				return false unless a.size == b.size
+				# 他で結果が出ていれば後は計算省略
+				next if flag == false
+
+				# 両方アノテーションなしならOK
+				next if !a and !b
+				
+				# 一方だけアノテーションがあるならNG
+				if !(a and b) then
+					flag = false
+					next
+				end
+
+				# サイズが違うならNG
+				if a.size != b.size then
+					flag = false
+					next
+				end
 				cost_matrix = []
 				for box_a in a do
 					col = []
@@ -71,6 +87,8 @@ module Helpers
 					sim = similarity_of_box(a[pair[0]],b[pair[1]])
 					min_sim = [sim,min_sim].min
 				end
+				
+				# 矩形の重なり(similarity)の最小値がしきい値以下ならNG
 				flag = false if min_sim < settings.task1['min_similarity']
 			}
 			return flag
