@@ -12,10 +12,12 @@ $LOAD_PATH.push(File.dirname(__FILE__))
 require_relative 'model_mongoid/user'
 require_relative 'model_mongoid/microtask'
 require_relative 'model_mongoid/ticket'
+require_relative 'model_mongoid/passback'
 
 # lib/Utilsはmodel_mongoidの各ファイルより後ろでrequireする．
 require_relative 'lib/Utils'
 require_relative 'lib/TicketGeneration'
+require_relative 'lib/CheckCompletion'
 
 Mongoid.load!("mongoid.yml", :development)
 
@@ -27,6 +29,7 @@ END_STATE = ['complete','time_up','abort']
 class KUSKAnnotator < Sinatra::Base
 	register Helpers::Utils
 	register Helpers::TicketGeneration
+	register Helpers::CheckCompletion
 
 	use Rack::MethodOverride
 #	enable :sessions
@@ -274,12 +277,12 @@ class KUSKAnnotator < Sinatra::Base
 				end
 				redirect '/overwrite', 303
 			else
-				# /overwriteからのpost
-				if nil == prev_task[:history]
-					mtask[:history] = []
-				else
-					mtask[:history] = prev_task[:history]
-					prev_task.delete(:history)
+			# /overwriteからのpost
+			if nil == prev_task[:history]
+				mtask[:history] = []
+			else
+				mtask[:history] = prev_task[:history]
+				prev_task.delete(:history)
 			end
 			temp = prev_task.as_json.delete_if{|key,val|
 				DELETE_FROM_HISTORY.include?(key.to_sym)
@@ -342,10 +345,27 @@ class KUSKAnnotator < Sinatra::Base
 		# 現在のマイクロタスクを終了したことを明示
 		session[:current_task] = nil
 		
-		# Ticketの方に登録
-		
-		Ticket::add_annotator(mtask['worker'],mtask['task'],mtask['blob_id'])
-		
+		# マイクロタスク終了の判定を行う
+		ticket = search(Ticket,mtask[:task],mtask[:blob_id])
+		unless ticket.annotator.include?(mtask['worker']) then
+				ticket.annotator << mtask['worker']
+		end
+
+
+		mtasks = search_micro_tasks(ticket)
+		min_mtask_num = settings.minimum_micro_task_num[task]
+		if mtasks.size > min_mtask_num then
+				if checkCompletion(ticket,mtasks) then
+					ticket.completion = true
+				else
+					Passback.execute(ticket,mtasks)
+				end
+		end
+
+		unless ticket.save! then
+			raise "failed to update ticket."
+		end
+
 		redirect "/task", 303
 	end
 		
@@ -373,12 +393,67 @@ class KUSKAnnotator < Sinatra::Base
 		path = settings.recipe_blob_path + "/" +  params[:splat].join("/")
 		send_file path	
 	end
+	
+	# 終了かどうか一括でチェック
+	get '/completion_check/:task' do |task|
+		tickets = Ticket.where({:task=>task})
+		min_mtask_num = settings.minimum_micro_task_num[task]
+		ids = []
+		for ticket in tickets do
+			mtasks = search(MicroTask,task,ticket.blob_id,:no_expectation)
+			next if mtasks.empty?
+			next if min_mtask_num > mtasks.size
+			next if ticket.completion
+			if mtasks.size >= min_mtask_num then
+				if check_completion(ticket,mtasks) then
+					ticket.completion = true
+					unless ticket.save! then
+						raise "failed to update ticket."
+					end					
+				else
+					Passback.execute(ticket,mtasks)
+					ids << ticket._id
+				end
+			end
+			
+			
+		end
+		return ids.join("\n")
+	end
+	
+	# 一定人数以上のannotatorがいる場合にticketをresetする
+	get '/reset_tickets/:task/:max_annotator' do |task,max_annotator|
+		tickets = Ticket.where({:task=>task})
+		max_annotator = max_annotator.to_i
+		ids = []
+		for ticket in tickets do
+			next if ticket.annotator.size < max_annotator
+			mtasks = search(MicroTask,task,ticket.blob_id,:no_expectation)
+			annotators = mtasks.map{|v|v.worker}
+			ticket.annotator = annotators
+			raise "failed to save ticket" unless ticket.save! 
+			ids << ticket._id
+		end
+		return ids.join("\n")
+	end
+	
+	# debug用のパス
+	get '/test' do
+		ticket = Ticket.where(task:"task2")[0]
+		mtasks = search_micro_tasks(ticket)
+		check_completion(ticket,mtasks)
+		ticket = Ticket.where(task:"task2")[0]
+		return ticket['candidates'].flatten.join("\n")
+	end
 		
+	
 		
-	#アノテーションのhelpへのリンク
+=begin
+	#アノテーションのhelpへのリンク(未完成)
 	get '/help/:task' do |task|
 		@title = "#{task.upcase}のHelp"
 
 		haml :"help/#{task}", :layout=>:layout_help
 	end
+=end
 end
