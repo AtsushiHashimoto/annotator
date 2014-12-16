@@ -355,7 +355,7 @@ class KUSKAnnotator < Sinatra::Base
 		mtasks = search_micro_tasks(ticket)
 		min_mtask_num = settings.minimum_micro_task_num[task]
 		if mtasks.size > min_mtask_num then
-				if checkCompletion(ticket,mtasks) then
+				if check_completion(ticket,mtasks) then
 					ticket.completion = true
 				else
 					Passback.execute(ticket,mtasks)
