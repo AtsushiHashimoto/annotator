@@ -345,6 +345,8 @@ class KUSKAnnotator < Sinatra::Base
 		# 現在のマイクロタスクを終了したことを明示
 		session[:current_task] = nil
 		
+		redirect '/task', 303 if task=='rest'
+
 		# マイクロタスク終了の判定を行う
 		ticket = search(Ticket,mtask[:task],mtask[:blob_id])
 		unless ticket.annotator.include?(mtask['worker']) then
@@ -355,7 +357,7 @@ class KUSKAnnotator < Sinatra::Base
 		mtasks = search_micro_tasks(ticket)
 		min_mtask_num = settings.minimum_micro_task_num[task]
 		if mtasks.size > min_mtask_num then
-				if checkCompletion(ticket,mtasks) then
+				if check_completion(ticket,mtasks) then
 					ticket.completion = true
 				else
 					Passback.execute(ticket,mtasks)
@@ -400,6 +402,7 @@ class KUSKAnnotator < Sinatra::Base
 		min_mtask_num = settings.minimum_micro_task_num[task]
 		ids = []
 		for ticket in tickets do
+		STDERR.puts "checking ticket: #{ticket._id}"
 			mtasks = search(MicroTask,task,ticket.blob_id,:no_expectation)
 			next if mtasks.empty?
 			next if min_mtask_num > mtasks.size
