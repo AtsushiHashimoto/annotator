@@ -102,13 +102,13 @@ module Helpers
 		def check_completion_task2(ticket,mtasks)
 			# check the number of boxes.
 			flag = true
-			ingredients = mtasks.map{|v| v['ingredients']}.flatten.uniq
-			utensils = mtasks.map{|v| v['utensils']}.flatten.uniq
-			seasonings = mtasks.map{|v| v['seasonings']}.flatten.uniq
+			ingredients = mtasks.map{|v| v['ingredients']}.flatten.uniq.sort
+			utensils = mtasks.map{|v| v['utensils']}.flatten.uniq.sort
+			seasonings = mtasks.map{|v| v['seasonings']}.flatten.uniq.sort
 			for mtask in mtasks do
-				flag = false unless mtask['ingredients'] == ingredients
-				flag = false unless mtask['utensils'] == utensils
-				flag = false unless mtask['seasonings'] == seasonings
+				flag = false unless mtask['ingredients'].sort == ingredients
+				flag = false unless mtask['utensils'].sort == utensils
+				flag = false unless mtask['seasonings'].sort == seasonings
 			end
 			if false == flag then
 				cand = ticket['candidates']
