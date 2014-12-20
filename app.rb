@@ -337,7 +337,7 @@ class KUSKAnnotator < Sinatra::Base
 						iter = options[1]
 						label = options[2]
 						key = "option_#{iter}"
-						mtask[:label] = "#{label}の#{params[key]}"
+						mtask[:label] = "#{label}::#{params[key]}"
 					else
 						mtask[:label] = params[:label]
 				end
