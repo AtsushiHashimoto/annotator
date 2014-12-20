@@ -8,14 +8,24 @@
 			%button.btn.btn-default#btn-raw_image{:type=>'button'} 画像全体を表示
 			%button.btn.btn-default#btn-mask_image{:type=>'button'} 検出された物体領域のみを表示
 		.no-padding.col-lg-6
-			.input-group
+			.input-group.col-lg-12
 				- iter = 0
-				- for cand in JSON.parse(@meta_tags[:candidates])
-					%input{:type=>"radio", :id => "radio_#{iter}",:name=>'label',:text=>cand,:value=>cand}
-					%label{:for=>"radio_#{iter}"}
-						= cand
-					%br
-					- iter = iter + 1
+				%table{width:"100%"}
+					- for cand in JSON.parse(@meta_tags[:candidates])
+						%tr
+							%td{width:"40%"}
+								%input{:type=>"radio", :id => "radio_#{iter}",:name=>'label',:text=>cand,:value=>cand}
+								%label{:for=>"radio_#{iter}"}
+									= cand
+								%br
+								- iter = iter + 1
+							%td
+								%input{:type=>"radio", :id => "radio_#{iter}",:name=>'label',:text=>cand,:value=>"option+#{iter}+#{cand}"}
+								%label{:for=>"radio_#{iter}"}
+									= "#{cand}の"
+									%input{:type=>"text",:name=>"option_#{iter}",:id=>"text_#{iter}_option", :value=>"フタ", size:"8"}
+								%br
+								- iter = iter + 1
 				%input#radio_mixture{:type=>"radio",:name=>'label',:value=>"water"}
 				%label{:for=>"radio_water"}
 					水道のタップ

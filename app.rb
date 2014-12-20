@@ -325,11 +325,19 @@ class KUSKAnnotator < Sinatra::Base
 			when 'task3' then
 				STDERR.puts params
 				label = params[:label]
+				options = label.split('+')
+				STDERR.puts options.join(" ")
+				label = options[0]
 				case label
 					when 'tools_not_in_list' then
 						mtask[:label] = params[:other_tool]
 					when 'mixture' then
 						mtask[:label] = 'mixture' 
+					when 'option' then
+						iter = options[1]
+						label = options[2]
+						key = "option_#{iter}"
+						mtask[:label] = "#{label}の#{params[key]}"
 					else
 						mtask[:label] = params[:label]
 				end
