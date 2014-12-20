@@ -42,6 +42,11 @@ class Ticket
 				sample = self.where(blob_id:/#{recipe_id}/, task: "task2", completion:false).not.any_in(:annotator=>[annotator]).sample
 				return sample if sample
 			end
+			if rand < 0.3 then
+				sample = self.where(blob_id:/#{recipe_id}/, task: "task3", completion:false).not.any_in(:annotator=>[annotator]).sample
+				return sample if sample
+
+			end
 			
 			sample = self.where(blob_id:/#{recipe_id}/, completion:false).not.any_in(:annotator=>[annotator]).sample
 			return sample if sample
