@@ -2,6 +2,7 @@
 .form.col-lg-12
 	%form#annotation_completion{:action => '/annotation', :method => 'post'}
 		.col-lg-12
+			矩形で表された物体に相当するラベルを右のリストから一つ選んで下さい．詳しくは画面下の指示に従って下さい．
 		.no-padding.col-lg-6
 			%canvas#img{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height],:class => "clickable"}
 			%br
@@ -46,6 +47,20 @@
 			%fieldset
 				%button.btn.btn-default.reset_canvas{:type=>'button'} 入力内容をリセット
 				= haml :'common_parts/annotation_submit'
+		.no-padding.col-lg-12
+			指示内容
+			%ul
+				%li
+					複数の物体が矩形に囲まれている場合は，矩形に内接する物体(矩形内で最も矩形にフィットする物体)を選んでください．ただし，矩形は手動でつけられたものなので，多少物体がはみ出したりしている場合があります．
+				%li
+					物体の一部の場合は，ラベル候補右列の「○○のXX」というラベルをつけてください．ただしXXには基本的に以下のものを入れて，表記揺れの無い様にしてください．以下のリストのいずれにも当てはまらないと思われる場合は監督者に確認してください．
+					%br
+					[フタ, 食べない部分，ボトル]
+				%li
+					矩形に囲まれた調味料が何かについては，下記の写真を参考にして判別してください．下記の写真にない調味料については監督者に訪ねてください．
+					%img(src="/img/seasonings_front.jpg" width="100%")
+					%br
+					%img(src="/img/seasonings_top.jpg" width="100%")
 %script(src="/js/jcanvas.min.js")
 %script(src="http://code.jquery.com/ui/1.9.2/jquery-ui.js")
 %script(src="/js/task3.js")
