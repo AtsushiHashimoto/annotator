@@ -331,6 +331,7 @@ class KUSKAnnotator < Sinatra::Base
 				case label
 					when 'tools_not_in_list' then
 						mtask[:label] = params[:other_tool]
+						mtask[:note] = "description"
 					when 'mixture' then
 						mtask[:label] = 'mixture' 
 					when 'option' then
@@ -338,6 +339,7 @@ class KUSKAnnotator < Sinatra::Base
 						label = options[2]
 						key = "option_#{iter}"
 						mtask[:label] = "#{label}::#{params[key]}"
+						mtask[:note] = "option"
 					else
 						mtask[:label] = params[:label]
 				end
