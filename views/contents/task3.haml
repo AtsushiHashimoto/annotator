@@ -8,6 +8,11 @@
 			%br
 			%button.btn.btn-default#btn-raw_image{:type=>'button'} 画像全体を表示
 			%button.btn.btn-default#btn-mask_image{:type=>'button'} 検出された物体領域のみを表示
+			%br
+			%br
+			%fieldset
+				= haml :'common_parts/annotation_submit'
+
 		.no-padding.col-lg-6
 			.input-group.col-lg-12
 				- iter = 0
@@ -41,12 +46,8 @@
 					上記以外の容器や調理器具 (種別): 
 					%input#text_container{:type=>"text",:name=>'other_tool',:value=>"ボウル"}
 				%br
-				※ [ボウル，ビニール袋，発泡スチロールトレー, ふきん]など．左のリストに無いものが出た場合は監督者に報告すること
+				※ [ボウル，ビニール袋，発泡スチロールトレー, ふきん, 洗剤]など。左のリストに無いものが出た場合は監督者に報告すること
 
-		.no-padding.col-lg-12
-			%fieldset
-				%button.btn.btn-default.reset_canvas{:type=>'button'} 入力内容をリセット
-				= haml :'common_parts/annotation_submit'
 		.no-padding.col-lg-12
 			指示内容
 			%ul
