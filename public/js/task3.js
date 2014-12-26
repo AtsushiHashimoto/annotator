@@ -77,7 +77,11 @@ jQuery(function ($) {
 					$('#btn-mask_image').click(print_mask_image);
 					$('#btn-raw_image').click(print_raw_image);
 			 };
-			
+			 
+			 $('#text_container').change(function(){
+																	 console.log("hoge");
+																	 $('#radio_container').prop('checked',true);
+																	 });
 												 
 												 
 /*
