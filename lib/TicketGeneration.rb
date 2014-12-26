@@ -113,13 +113,8 @@ module Helpers
 						
 						ticket['raw_image'] = raw_image
 
-						if is_single_object then
-							samples = Ticket::where(task:task, obj_id:obj_id).not.where(event:event)
-							if samples.size == 1 then
-								# 既に同じ物体が登録されているので省略する
-								next
-							end								
-						end
+						next unless Ticket::where(_id: ticket._id).empty?
+						
 						ticket.save!
 						count = count + 1
 						annotation_count = annotation_count + 1
