@@ -5,7 +5,6 @@ gem 'sinatra'
 gem 'sinatra-reloader'
 gem 'sinatra-contrib'
 gem 'json'
-gem 'nokogiri'
 gem 'activesupport'
 gem 'munkres'
 
