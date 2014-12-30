@@ -1,26 +1,38 @@
 # 作業のリスト(配列順にTicketの生成が試行される)
 tasks:
-- 'task6'
-- 'task5'
-- 'task4'
-- 'task3'
-- 'task2'
-- 'task1'
+ - 'task6'
+ - 'task5'
+ - 'task4'
+ - 'task3'
+ - 'task2'
+ - 'task1'
 
 # 作業生成時の依存関係
 task_dependency:
-task6:
-- 'task3'
-- 'task4'
-task5:
-- 'task3'
-task4:
-- 'task3'
-task3:
-- 'task1'
-- 'task2'
-task2:
-task1:
+ task6:
+  - 'task3'
+  - 'task4'
+ task5:
+  - 'task3'
+ task4:
+  - 'task3'
+ task3:
+  - 'task1'
+  - 'task2'
+ task2:
+ task1:
+
+# ticket選択の戦略
+# random or semi-random or ordered
+ticket_sampling_strategy: ‘ordered’
+
+
+# 作業完了に必要なmicro_taskの完了数
+minimum_micro_task_num:
+ task1: 2
+ task2: 2
+ task3: 2
+
 
 # 基本的な合計作業時間(分:秒)
 standard_total_work_time: '90:00'
@@ -33,11 +45,11 @@ work_time: '20:00'
 
 # 各作業にかけて欲しい最低時間
 min_work_time:
-test: '0:04'
-task1: '0:02'
-task2: '0:01'
-task3: '0:01'
-overwrite: '0:01'
+ test: '0:04'
+ task1: '0:02'
+ task2: '0:01'
+ task3: '0:01'
+ overwrite: '0:01'
 
 mongodb: 'localhost:27017'
 mongodb_session: 'testdb'
@@ -61,8 +73,9 @@ image_height: 310.4 #388
 
 # 各タスク特有のパラメタ
 task1:
-modulation: 150
+ modulation: 150
+ min_similarity: 0.8
 
 task2:
-synonims: '/Users/ahashimoto/recipesentenceclustering/ontology/synonym.tsv'
-overview: 'overview.jpg'
+ synonims: '/Users/ahashimoto/recipesentenceclustering/ontology/synonym.tsv'
+ overview: 'overview.jpg'

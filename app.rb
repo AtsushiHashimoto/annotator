@@ -192,7 +192,7 @@ class KUSKAnnotator < Sinatra::Base
 			session[:start] = NULL_TIME
 			redirect '/rest', 303			
 		end
-		ticket = Ticket.select_ticket(@user.name)
+		ticket = Ticket.select_ticket(@user.name, settings.ticket_sampling_strategy)
 		unless ticket then
 			# 一度，生成を試みる
 			ticket = Ticket.select_ticket(@user.name)

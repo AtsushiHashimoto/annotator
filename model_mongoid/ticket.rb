@@ -33,22 +33,33 @@ class Ticket
 		ticket.save
 	end
 
-	def self.select_ticket(annotator)
-		#番号の若いレシピから順に選ぶ
+	def self.select_ticket(annotator, strategy='semi_random')
+		#番号の若いレシピから順に選ぶ	
 		for i in 1..20 do
 			recipe_id = "2014RC#{"%02d"%i}"
-			
-			if rand < 0.2 then
-				sample = self.where(blob_id:/#{recipe_id}/, task: "task2", completion:false).not.any_in(:annotator=>[annotator]).sample
-				return sample if sample
+			case strategy
+				when 'random' then
+					sample = self.where(blob_id:/#{recipe_id}/).sample
+				when 'ordered' then
+					sample = self.where(blob_id:/#{recipe_id}/).sort_by{|v|
+						STDERR.puts v.blob_id
+						v.blob_id
+					}[0]
+				else
+				# semi_random 
+					if rand < 0.2 then
+						sample = self.where(blob_id:/#{recipe_id}/, task: "task2", completion:false).not.any_in(:annotator=>[annotator]).sample
+						return sample if sample
+					end
+					if rand < 0.3 then
+						sample = self.where(blob_id:/#{recipe_id}/, task: "task3", completion:false).not.any_in(:annotator=>[annotator]).sample
+						return sample if sample
+						
+					end
+					
+					sample = self.where(blob_id:/#{recipe_id}/, completion:false).not.any_in(:annotator=>[annotator]).sample
 			end
-			if rand < 0.3 then
-				sample = self.where(blob_id:/#{recipe_id}/, task: "task3", completion:false).not.any_in(:annotator=>[annotator]).sample
-				return sample if sample
-
-			end
 			
-			sample = self.where(blob_id:/#{recipe_id}/, completion:false).not.any_in(:annotator=>[annotator]).sample
 			return sample if sample
 		end
 		return nil
