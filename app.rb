@@ -310,7 +310,7 @@ class KUSKAnnotator < Sinatra::Base
 						array[i][:x] = array[i][:x].to_f / settings.image_width
 						array[i][:width] = array[i][:width].to_f / settings.image_width
 						array[i][:y] = array[i][:y].to_f / settings.image_height
-						array[i][:height] = array[i][:height].to_f / settings.image_width
+						array[i][:height] = array[i][:height].to_f / settings.image_height
 					end					
 					mtask[:annotation] = array
 				end
