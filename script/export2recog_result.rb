@@ -1,21 +1,12 @@
 #!/usr/bin/ruby
-
-##########################################
-# annotatorによるtask1, task3の結果を元に，
-# 物体が取られたり置かれたりした時刻と，
-# その物体の種類をファイルに書き出すプログラム
-##########################################
-
-
 require 'rubygems'
 require 'json'
 require 'csv'
 require 'active_support'
 
 
-
 # 認識対象の語彙集号
-VOCABULARY = 'word.dat'
+VOCABULARY = 'vocab.dat'
 
 # blobの番号毎の認識結果
 BLOB_CLASS = 'blob.csv'
@@ -31,9 +22,10 @@ TASK1_FILE = 'micro_tasks1.js'
 TASK3_FILE = 'micro_tasks3.js'
 
 
-if ARGV.size < 1 then
-	# アノテーション結果は必ずannotator/blob_imagesの下にmicro_tasks?.jsという名前で置く．
-	STDERR.puts "USAGE: ruby #{__FILE__} annotator/blob_images/DATA_ID/"
+
+if ARGV.size < 2 then
+	# アノテーション結果は必ずannotator/blob_imagesの下にmicro_tasks?.jsという名前で置く．←自動生成されます
+	STDERR.puts "USAGE: ruby #{__FILE__} annotator/blob_images/DATA_ID/ worker"
 		exit 1
 end
 
@@ -41,11 +33,19 @@ if ARGV[0][-1]!='/' then
 	ARGV[0] = ARGV[0] + '/'
 end
 
-# DATA_PATHの下にはmicro_tasks{1,3}.js(mongo_dbのexport)と各カメラのtimestampが必要
 DATA_PATH = ARGV[0]
+worker = ARGV[1]
 DATA_ID = DATA_PATH.split('/')[-1]
 mtasks1_file = DATA_PATH + TASK1_FILE
 mtasks3_file = DATA_PATH + TASK3_FILE
+
+export_command = "mongoexport -db kusk_annotation --csv --collection micro_tasks --out #{mtasks1_file} -fieldFile #{File.dirname(__FILE__)}/export2recog_result/fields_task1.txt --query '{task:\"task1\",worker:\"#{worker}\"}'"
+puts export_command
+puts `#{export_command}`
+
+export_command = "mongoexport -db kusk_annotation --csv --collection micro_tasks --out #{mtasks3_file} -fieldFile #{File.dirname(__FILE__)}/export2recog_result/fields_task3.txt --query '{task:\"task3\",worker:\"#{worker}\"}'"
+puts export_command
+puts `#{export_command}`
 
 
 # 出力目標
@@ -57,7 +57,7 @@ def load_mongo_exported_js(file)
 	data = []
 	fin = File.open(file,'r')
 	keys = fin.gets.strip.parse_csv
- 	puts keys.join(' ')
+	#puts keys.join(' ')
 	
 	fin.each{|line|
 			buf = line.strip.parse_csv
@@ -150,7 +150,7 @@ end
 # timestampを読み込む
 timestamps = {}
 for camera in cameras.sort do
-	timestamp_file = "#{DATA_PATH}/#{camera}_#{TIMESTAMP_FILE}"
+	timestamp_file = "#{DATA_PATH}/#{camera}_timestamp.csv"
 	timestamps[camera] = load_timestamp(timestamp_file)
 end
 
@@ -168,8 +168,12 @@ for blob_id, temp in blobs do
 			for mtask3 in data[:micro_tasks3] do
 				box_id = mtask3[:box_id]
 				box = mtask3[:box]
+				camera = mtask3[:camera]
+				next if box == nil
 				timestamp = timestamps[mtask3[:camera]][frame]
-				buffer << "#{blob_id}_#{box_id}, #{box['type']}, #{timestamp}, #{mtask3['label']}:1.0"
+				# スペースで埋めておく
+				buffer << "#{camera}_#{blob_id}_#{box_id}, #{camera}, #{box['type']}, #{timestamp}, #{mtask3['label']}:1.0"
+				# 詳細版: 物体のバウンディングボックスをつける.
 			end
 		end
 end
@@ -179,10 +183,14 @@ buffers = buffer.sort_by{|v|
 }
 
 fout = File.open(blob_class_file,'w')
+fout.puts "ID(cameraid_blobid_boxid), camera, event, timestamp, likelihood"
 for buf in buffers
 		fout.puts buf
 end
 fout.close
+
+puts "#{blob_class_file} generated"
+puts "#{vocab_file} generated"
 
 
 

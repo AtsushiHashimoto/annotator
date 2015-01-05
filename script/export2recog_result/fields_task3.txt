@@ -1,0 +1,7 @@
+_id
+worker
+time_range
+min_work_time
+task
+blob_id
+label
