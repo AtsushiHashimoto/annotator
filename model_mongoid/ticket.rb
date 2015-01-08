@@ -14,6 +14,7 @@ class Ticket
 	# fields (presence: true)
 	field :recipe
 	field :annotator, type: Array
+	field :checker, type: Array
 
 
 	validates :blob_id, presence: true
@@ -34,7 +35,14 @@ class Ticket
 	end
 
 	def self.select_ticket(annotator, strategy='semi_random')
-		#番号の若いレシピから順に選ぶ	
+		# annotatorの人数4人以上だったらタグ付けしない
+		query_or = []
+		for i in 0...2 do
+			query_or << {:annotator.with_size=>i}
+		end
+		query_or = {"$or"=> query_or}
+		
+		#番号の若いレシピから順に選ぶ
 		for i in 1..20 do
 			recipe_id = "2014RC#{"%02d"%i}"
 			case strategy
@@ -48,19 +56,17 @@ class Ticket
 				else
 				# semi_random 
 =begin
-					 if rand < 0.2 then
+					if rand < 0.2 then
 						sample = self.where(blob_id:/#{recipe_id}/, task: "task2", completion:false).not.any_in(:annotator=>[annotator]).sample
 						return sample if sample
 					end
 =end
 					if rand < 0.3 then
-						sample = self.where(blob_id:/#{recipe_id}/, task: "task3", completion:false).not.any_in(:annotator=>[annotator]).sample
+						sample = self.where(blob_id:/#{recipe_id}/, task: "task3", completion:false).not.any_in(:annotator=>[annotator]).where(query_or).sample
 						return sample if sample
 						
 					end
-
-					sample = self.where(blob_id:/#{recipe_id}/, completion:false).not.any_in(:annotator=>[annotator]).sample
-					
+					sample = self.where(blob_id:/#{recipe_id}/, completion:false).where(query_or).not.any_in(:annotator=>[annotator]).sample
 			end
 			
 			return sample if sample
@@ -73,7 +79,6 @@ class Ticket
 	# 指定されたアノテータをticketに追加
 =begin
 	def self.add_annotator(annotator, task, blob_id, max_task_num=1)
->>>>>>> 6e1cc1560994eb85d4c369af1c8a102c189fcdd3
 		return if task == 'rest'
 		ticket = self.where({:task=>task,:blob_id=>blob_id})
 		raise "ticket not found." if ticket.empty?
