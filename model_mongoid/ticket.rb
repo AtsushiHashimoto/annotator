@@ -43,8 +43,10 @@ class Ticket
 		query_or = {"$or"=> query_or}
 		
 		#番号の若いレシピから順に選ぶ
-		for i in 1..20 do
-			recipe_id = "2014RC#{"%02d"%i}"
+		cands =  Array.new(3){|i| "2015YR%02d"%(i+1)}
+		cands +=  Array.new(20){|i| "2014RC%02d"%(i+1)}
+		#cands = ["2015YR","2014RC"].product(Array.new(20){|i| "%02d"%(i+1)}).map{|v|v.join}
+		for recipe_id in cands do
 			case strategy
 				when 'random' then
 					sample = self.where(blob_id:/#{recipe_id}/).sample
