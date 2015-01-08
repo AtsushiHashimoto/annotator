@@ -562,6 +562,11 @@ class KUSKAnnotator < Sinatra::Base
 		end
 		@task = task
 		#return "#{micro_tasks.size} micro_tasks has been found."		
+		
+		if task == "task2" then
+				redirect "/task/#{@ticket.task}/#{@ticket.blob_id}?checker=true",303
+		end
+		
 		haml :"check/#{task}"
 	end
 =begin
