@@ -56,6 +56,8 @@ class KUSKAnnotator < Sinatra::Base
 		session.use "testdb"
 		Mongoid::Threaded.sessions[:default] = session
 		
+		set :checker_list, ['ahashimoto']
+		
 		# task2のためにontologyを読み込む
 		set :synonyms, load_synonyms
 	end
@@ -159,7 +161,7 @@ class KUSKAnnotator < Sinatra::Base
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
 
-		@meta_tags = generate_meta_tags
+		@meta_tags = generate_meta_tags_base
 		@meta_tags[:task] = 'rest'
 		@meta_tags[:blob] = blob
 		@meta_tags[:min_work_time] = time2sec(settings.rest_time).to_s
@@ -200,27 +202,32 @@ class KUSKAnnotator < Sinatra::Base
 				redirect "/end/#{END_STATE[0]}", 303
 			end
 		end	
-		session[:ticket] = ticket.as_json
+		session[:ticket] = ticket
 		redirect "/task/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
 	get '/task/:task/:blob_id' do |task,blob_id|
-		@ticket = session[:ticket]
+		@ticket = session[:ticket].as_json
+		STDERR.puts 
 		redirect '/task', 303 unless @ticket
 		@ticket = @ticket.with_indifferent_access
 		redirect '/task', 303 unless @ticket[:task] == task
 		redirect '/task', 303 unless @ticket[:blob_id] == blob_id
 		
-		mtask_id = "#{@user.name}::#{task}::#{blob_id}"
+		mtask_id = "#{@user}::#{task}::#{blob_id}"
 		if !session[:current_task] or mtask_id != session[:current_task][:id] then
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
 		
 		
-		@meta_tags = generate_meta_tags(@ticket)
+		@meta_tags = generate_meta_tags_base(@ticket)
 		if task != @ticket[:task] or blob_id != @ticket[:blob_id]
 			# URLとキャッシュが合わない⇢ブラウザの戻るボタン⇢待ち時間を減らす
 			@meta_tags[:min_work_time] = "1"
+		end
+		
+		if params['checker'] != nil then
+			@meta_tags[:checker] = @user
 		end
 
 		case task
@@ -260,15 +267,20 @@ class KUSKAnnotator < Sinatra::Base
 	end
 
 	post '/annotation' do
-		STDERR.puts 'in post /annotation do'
-		STDERR.puts @user
+		#STDERR.puts 'in post /annotation do'
+		#STDERR.puts @user.name
 		login_check
 		curr_time = Time.new
+		
 		mtask = MicroTask.new(_id: params[:_id], worker: params[:worker], time_range: [parse_time(params[:start_time]),curr_time],min_work_time: params[:min_work_time],task: params[:task])
 		mtask.blob_id = params[:blob_id] #if params.include?(:blob_id)
+		
+		
+		
+		
 		# 既に登録済みのマイクロタスクかどうかの確認
 		prev_task = MicroTask.duplicate?(params[:_id])
-		if prev_task then
+		if prev_task and !params.include?("checker") then
 			if nil == params[:overwrite] then
 				session[:temp_inputs] = {}
 				for key,val in params do
@@ -303,7 +315,11 @@ class KUSKAnnotator < Sinatra::Base
 			when 'task1' then
 				unless params[:annotation].empty? then
 					# 空でなければtask1 の結果をパースして保存
-					array =  JSON.parse(params[:annotation]).uniq
+					if params[:annotation] == 'null' then
+						array = []
+					else
+						array =  JSON.parse(params[:annotation]).uniq
+					end
 					#画像のサイズで正規化しておく．
 					for i in 0...array.length do
 						array[i] = array[i].with_indifferent_access
@@ -347,11 +363,12 @@ class KUSKAnnotator < Sinatra::Base
 				STDERR.puts "ERROR: unknown task '#{params[:task]}' is posted."
 		end
 				
-				
-		unless mtask.save! then
-			raise 500, "mongodbへのmicrotaskの保存に失敗しました"
-		end		
-		
+		if MicroTask.where(:_id=>mtask._id).count == 0 then
+			unless mtask.save then
+				raise 500, "mongodbへのmicrotaskの保存に失敗しました"
+			end		
+		end
+
 		# 現在のマイクロタスクを終了したことを明示
 		session[:current_task] = nil
 		
@@ -362,22 +379,54 @@ class KUSKAnnotator < Sinatra::Base
 		unless ticket.annotator.include?(mtask['worker']) then
 				ticket.annotator << mtask['worker']
 		end
+		
 
+		STDERR.puts params['checker']
+		STDERR.puts params.include?('checker')
+		STDERR.puts params.include?(:checker)
+		
+		if !params.include?('checker') then
+			# 通常のannotation post
+			mtasks = search_micro_tasks(ticket)
+			min_mtask_num = settings.minimum_micro_task_num[task]
+			if mtasks.size > min_mtask_num then
+					if check_completion(ticket,mtasks) then
+						ticket.completion = true
+					else
+						Passback.execute(ticket,mtasks)
+					end
+			end
+		else
+			# checkerによるannotation post
+			# /check/:task からのpost→他のmtaskをpassback送りにして，今回の物だけ登録し，ticket=trueとする
+			temp = search_micro_tasks(ticket)
+			delete_mtasks = []
+			for m in temp do
+				delete_mtasks << m unless m._id==mtask._id
+			end
+			Passback.execute(ticket,delete_mtasks) unless delete_mtasks.empty?
 
-		mtasks = search_micro_tasks(ticket)
-		min_mtask_num = settings.minimum_micro_task_num[task]
-		if mtasks.size > min_mtask_num then
-				if check_completion(ticket,mtasks) then
-					ticket.completion = true
-				else
-					Passback.execute(ticket,mtasks)
-				end
+			
+			if ticket.checker == nil then
+				ticket.checker = [params[:checker]]
+			else
+				ticket.checker << params[:checker]
+			end
+			STDERR.puts ticket
+
+			ticket.completion = true
+			
+			unless ticket.save! then
+				raise "failed to update ticket."
+			end
+			redirect "/check/#{task}"			
 		end
 
 		unless ticket.save! then
 			raise "failed to update ticket."
 		end
-
+		
+		
 		redirect "/task", 303
 	end
 		
@@ -459,8 +508,62 @@ class KUSKAnnotator < Sinatra::Base
 		return ticket['candidates'].flatten.join("\n")
 	end
 		
-	
+	# タグ付け結果確認用のパス
+	get '/check/:task' do |task|
+		login_check
+		return 404 if settings.checker_list.include?(@user)
+		for i in 16.downto(settings.minimum_micro_task_num[task]-1) do
+			targets = Ticket.where(
+													 :task=>task,
+													 :annotator.with_size=>i,
+													 :completion=>false)
+													 
+			STDERR.puts "#{i}: #{targets.count}"
+			break if targets.count > 0
+		end
+		return "No more passbacked work." if !targets
+		ticket = targets.sample
 		
+		
+		session[:ticket] = ticket
+
+		redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
+	end
+	get '/check/:task/:blob_id' do |task,blob_id|		
+		login_check
+		return 404 if settings.checker_list.include?(@user)
+		@ticket = session[:ticket]
+		@title = "CHECK #{task} for #{blob_id}"
+		#return target.ticket['_id']
+		
+		mtask_id = "#{@user.name}::#{task}::#{blob_id}"
+		if !session[:current_task] or mtask_id != session[:current_task][:id] then
+			session[:current_task] = {:id=>mtask_id,:start_time=>now}
+		end
+		
+		blob_id = @ticket['blob_id']
+		@meta_tags = generate_meta_tags(@ticket)
+
+=begin
+		if task != ticket[:task] or blob_id != ticket[:blob_id]
+			# URLとキャッシュが合わない⇢ブラウザの戻るボタン⇢待ち時間を減らす
+			meta_tags[:min_work_time] = "1"
+		end
+=end
+#		@meta_tags['min_work_time'] = 0
+		
+		passbacks = Passback.where("ticket._id"=>@ticket['_id'])
+		@micro_tasks = []
+		for p in passbacks do
+			@micro_tasks += p.micro_tasks
+		end
+		for mtask in MicroTask.where(blob_id:blob_id) do
+			#			@micro_tasks << mtask
+		end
+		@task = task
+		#return "#{micro_tasks.size} micro_tasks has been found."		
+		haml :"check/#{task}"
+	end
 =begin
 	#アノテーションのhelpへのリンク(未完成)
 	get '/help/:task' do |task|

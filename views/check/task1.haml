@@ -1,0 +1,46 @@
+%link{:rel=>"stylesheet", :href=>"http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"}
+.form.col-lg-12
+	- for mtask in @micro_tasks 
+		%form.annotation{:action => '/annotation', :method => 'post'}
+			%fieldset
+				.col-lg-2.no-padding
+					= "micro task by #{mtask['worker']}"
+					%br
+					%button.btn.btn-success.breakable_link.go_to_next{:type=>"submit"} これを選択する
+				.col-lg-10.micro_task.no-padding
+					.diff_slider.float-left.vertical_slidebar{:style=>"height:#{@meta_tags[:image_height]-10}px;"}
+					%canvas.img-before{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height], :type=>'taken'}"}
+					%canvas.img-after{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height], :type=>'put'}"}
+					%br
+					%button.btn.btn-default.btn-raw_image{:type=>'button'} 画像全体を表示
+					%button.btn.btn-default.btn-mask_image{:type=>'button'} 検出された物体領域のみを表示
+					%textarea.annotation.full-width{ :rows=>'3', :name=>'annotation', :readonly=>true}
+						= mtask['annotation'].to_json
+					
+					- [:_id, :worker, :task, :blob_id, :start_time, :min_work_time].each do |key|
+						%input{:type => "hidden", :name => key, :value => mtask[key]}
+					%input{:type => "hidden", :name => "checker", :value => @user.name}
+	.col-lg-12
+		%a{:href=>"/task/#{@task}/#{@ticket.blob_id}?checker=true"}
+			%button.btn.btn-warning.breakable_link.goto_task{:type=>"button"} 自分でつけ直す(正解がない)
+	.col-lg-12
+		%h5 説明
+		%ul
+			%li
+				「検出された領域」に大きく関与すると考えられる物体のうち，以下のいずれかに該当する物体をを全て四角で囲って下さい（部分的に検出されていない領域があっても全体を囲ってください）
+				%ol
+					%li 左の画像の検出領域に存在する物体のうち，調理台に置かれているもので，かつ，右の画像で同じ位置には存在しない，あるいは，人の手に取られているもの
+					%li 右の画像の検出領域に存在する物体のうち，手に取られていないもので，かつ，左の画像の同じ位置には存在しないもの
+					%li 水道のタップで，動かされたと判断されるもの（水を流し始めた=タップを上げた→右，水を止めた=タップを下げた→左，を囲む）
+				上記の1,2が同時に発生する場合もあるので，その場合はそれぞれを矩形で囲んでください．
+				%br
+				上記に該当するものが一つもない場合は，そのまま「次へ」進んでください．
+			%li
+				例外として，かき混ぜられただけの食材（新たな食材が加えられたりしていないが，ひと混ぜしただけのようなもの）は何もつけずに次へ進んでください．
+			%li
+				少しでも，どっちかな？と感じることがあれば，担当者に聞いてください．
+		%br
+		%br
+%script(src="/js/jcanvas.min.js")
+%script(src="http://code.jquery.com/ui/1.9.2/jquery-ui.js")
+%script(src="/js/task1_check.js")

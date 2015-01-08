@@ -24,7 +24,6 @@ module Helpers
 				redirect LOGIN_PATH, 303
 			end			
 		end
-		
 	
 		def parse_time(timestamp_str)
 			buf = /(\d{4}).(\d{2}).(\d{2})_(\d{2}).(\d{2}).(\d{2}).(\d+)/.match(timestamp_str)
@@ -43,10 +42,10 @@ module Helpers
 			(Time.utc(0,1,1,hour,min,sec) - Time.utc(0,1,1,0,0,0)).to_i
 		end
 		
-		def generate_meta_tags(ticket=nil)
+		def generate_meta_tags_base(ticket=nil)
 			meta_tags = {}
 			meta_tags[:_id] = session[:current_task][:id]
-			meta_tags[:worker] = @user.name
+			meta_tags[:worker] = @user
 			meta_tags[:start_time] = session[:current_task][:start_time];
 			return meta_tags unless ticket
 			meta_tags[:blob_id] = ticket[:blob_id]
@@ -55,6 +54,33 @@ module Helpers
 				# 既にあるハッシュ要素は上書きしない(_id)など
 				next if meta_tags.include?(key.to_sym)
 				meta_tags[key.to_sym] = val.to_s
+			end
+			meta_tags
+		end
+		
+		def generate_meta_tags(ticket)
+			meta_tags = generate_meta_tags_base(ticket)
+				
+			task = ticket['task']
+			case task
+				when 'task1'
+				meta_tags[:image_width] = settings.image_width
+				meta_tags[:image_height] = settings.image_height
+				meta_tags[:diff_image] = generate_diff_image(ticket[:after_image],ticket[:before_image], ticket[:blob_path]);
+				meta_tags[:mask_image] = generate_mask_image(ticket[:blob_path])
+				when 'task2'
+				synonyms = settings.synonyms
+				candidates = ticket[:candidates].with_indifferent_access
+				meta_tags[:list_ingredient] = synonyms[:ingredient].to_json
+				meta_tags[:list_utensil   ] = synonyms[:utensil   ].to_json
+				meta_tags[:list_seasoning ] = synonyms[:seasoning ].to_json
+				meta_tags[:overview] = ticket[:blob_path] + "/" + settings.task2[:overview]
+				when 'task3'
+				meta_tags[:image_width] = settings.image_width
+				meta_tags[:image_height] = settings.image_height
+				meta_tags[:candidates] = ticket['candidates'].to_json
+				meta_tags[:box] = ticket['box'].to_json
+				meta_tags[:mask_image] = generate_mask_image(ticket[:blob_path])
 			end
 			meta_tags
 		end
