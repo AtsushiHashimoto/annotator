@@ -179,7 +179,7 @@ for blob_id, temp in blobs do
 end
 
 buffers = buffer.sort_by{|v|
-	v.split(',')[2].strip
+	v.split(',')[3].strip
 }
 
 fout = File.open(blob_class_file,'w')
