@@ -1,4 +1,4 @@
-%p #{@user.name}さん，お疲れさまでした．
+%p #{@user}さん，お疲れさまでした．
 %p
 	- if @state=='complete'
 		可能な全てのデータへのタグ付けが終わりました．
@@ -12,7 +12,7 @@
 	%form#logout-form{:action => '/session', :method => 'post'}
 		%fieldset
 			%input{:type => "hidden", :name => '_method', :value=>'delete' }
-			%input{:type => "hidden", :name => 'user', :value => @user.name}
+			%input{:type => "hidden", :name => 'user', :value => @user}
 			%input{:type => "hidden", :name => 'end_state', :value => @state}
 			%input{:type => "submit", :value => "作業内容を送信(未実装)してログアウト"}
 #breakable
