@@ -55,8 +55,8 @@ class KUSKAnnotator < Sinatra::Base
 		session = Moped::Session.new([settings.mongodb])
 		session.use "testdb"
 		Mongoid::Threaded.sessions[:default] = session
-		
-		set :checker_list, ['ahashimoto']
+				
+		set :checker_list, User.where(checker:true).map{|v| v.name}
 		
 		# task2のためにontologyを読み込む
 		set :synonyms, load_synonyms
