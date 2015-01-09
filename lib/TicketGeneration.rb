@@ -60,8 +60,7 @@ module Helpers
 				mtask = MicroTask::where(task:'task1',blob_id:seed.blob_id)[0]
 				raise "no mtask has been found." unless mtask
 				next unless mtask['annotation']
-				
-				
+
 
 				# recipeを取得
 				_id = task + "_" + mtask['blob_id']

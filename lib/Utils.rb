@@ -41,7 +41,7 @@ module Helpers
 			#			STDERR.puts "#{hour}:#{min}:#{sec}"
 			(Time.utc(0,1,1,hour,min,sec) - Time.utc(0,1,1,0,0,0)).to_i
 		end
-		
+
 		def generate_meta_tags_base(ticket=nil)
 			meta_tags = {}
 			meta_tags[:_id] = session[:current_task][:id]
@@ -52,6 +52,8 @@ module Helpers
 			meta_tags[:min_work_time] = time2sec(settings.min_work_time[ticket[:task]]).to_s
 			for key,val in ticket.as_json do
 				# 既にあるハッシュ要素は上書きしない(_id)など
+				next unless val
+				next if val.respond_to?(:'empty?') and val.empty?
 				next if meta_tags.include?(key.to_sym)
 				meta_tags[key.to_sym] = val.to_s
 			end
@@ -159,6 +161,10 @@ module Helpers
 				`convert -type GrayScale -threshold 1 #{path} #{output_image}`
 			end
 			return output_image.sub(settings.image_blob_path,"")
+		end
+		
+		def am_i_checker?
+			return settings.checker_list.include?(@user)
 		end
 		
 		###############################

@@ -1,6 +1,6 @@
 - [:_id, :worker, :task, :blob_id, :start_time, :min_work_time].each do |key|
 	%input{:type => "hidden", :name => key, :value => @meta_tags[key]}
-- if @meta_tags.include?(:checker)
+- if @meta_tags.include?(:checker) and !@meta_tags[:checker].empty?
 	%input{:type => "hidden", :name => 'checker', :value => @meta_tags[:checker]}
 - unless "rest" == @meta_tags[:task] 
 	%button.btn.btn-warning.breakable_link.timer-hide.skip{:type=>"button"} スキップ
