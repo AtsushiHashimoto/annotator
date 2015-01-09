@@ -1,5 +1,10 @@
 %link{:rel=>"stylesheet", :href=>"http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"}
 .form.col-lg-12
+	%ul
+		%li 物体全体を囲んでいるものを選んでください．
+		%li ただし，水道のタップのみ，検出された領域のみを囲んでいるものを選んでください
+		%li 同じようなタグ付け結果が複数ある場合はより矩形での囲みが正確なものを選んでください
+	%hr
 	- for mtask in @micro_tasks 
 		%form.annotation{:action => '/annotation', :method => 'post'}
 			%fieldset
