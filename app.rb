@@ -227,6 +227,7 @@ class KUSKAnnotator < Sinatra::Base
 		end
 		
 		if params['checker'] != nil then
+			STDERR.puts "===========CHECKER: #{params['checker']}"
 			@meta_tags[:checker] = @user
 		end
 
@@ -385,7 +386,7 @@ class KUSKAnnotator < Sinatra::Base
 		STDERR.puts params.include?('checker')
 		STDERR.puts params.include?(:checker)
 		
-		if !params.include?('checker') then
+		if !params.include?('checker') or params['checker'] != @user then
 			# 通常のannotation post
 			mtasks = search_micro_tasks(ticket)
 			min_mtask_num = settings.minimum_micro_task_num[task]
