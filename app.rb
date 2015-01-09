@@ -233,6 +233,7 @@ class KUSKAnnotator < Sinatra::Base
 		if params.include?('checker') and am_i_checker? then
 			STDERR.puts "===========CHECKER: #{params['checker']}"
 			@meta_tags[:checker] = @user
+			@meta_tags[:min_work_time] = 3
 		end
 
 		case task
@@ -383,10 +384,6 @@ class KUSKAnnotator < Sinatra::Base
 				ticket.annotator << mtask['worker']
 		end
 		
-		STDERR.puts "checker"
-		STDERR.puts params['checker']
-		STDERR.puts params.include?('checker')
-		STDERR.puts params.include?(:checker)
 		
 		if params.include?('checker') and am_i_checker? then
 			# checkerによるannotation post
