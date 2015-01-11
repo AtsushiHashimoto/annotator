@@ -131,10 +131,10 @@ jQuery(function ($) {
 															ann_elem = $(elem).find('.annotation')[0];
 															json_str = $(ann_elem).val();
 															console.log(json_str);
-															rects = $.parseJSON(json_str);
-															if(rects==null){
-															return;
+															if(json_str==""){
+															 return;
 															}
+															rects = $.parseJSON(json_str);
 															rects.forEach(function(rect){
 																						console.log(rect);
 																						var tar;
@@ -151,8 +151,8 @@ jQuery(function ($) {
 																													 draggable: false,
 																														strokeStyle: "#ff0000",
 																													 strokeWidth: 2,
-																													 x: rect.x * image_width, y: rect.y * image_height,
-																													 width: rect.width*image_width, height: rect.height * image_height,
+																													 x: rect.x, y: rect.y,
+																													 width: rect.width, height: rect.height,
 																													 fromCenter: false,
 																														index:3
 																													 });
