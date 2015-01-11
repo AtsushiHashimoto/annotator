@@ -34,43 +34,44 @@ class Ticket
 		ticket.save
 	end
 
-	def self.select_ticket(annotator, strategy='semi_random')
+	def self.select_ticket(annotator, strategy='semi_random', for_check = false, task_priority={})
 		# annotatorの人数4人以上だったらタグ付けしない
+		task_priority = {'task4'=>0.3,'task3'=>0.4,'task2'=>0.05,'task1'=>1.0} if task_priority.empty?
+
+
 		query_or = []
 		for i in 0...2 do
 			query_or << {:annotator.with_size=>i}
 		end
-		query_or = {"$or"=> query_or}
+		#		query_or = {"$or"=> query_or}
 		
 		#番号の若いレシピから順に選ぶ
 		cands =  Array.new(3){|i| "2015YR%02d"%(i+1)}
 		cands +=  Array.new(20){|i| "2014RC%02d"%(i+1)}
 		#cands = ["2015YR","2014RC"].product(Array.new(20){|i| "%02d"%(i+1)}).map{|v|v.join}
+		
+		tickets = self.where(completion:false)
+		
 		for recipe_id in cands do
-			case strategy
-				when 'random' then
-					sample = self.where(blob_id:/#{recipe_id}/).sample
-				when 'ordered' then
-					sample = self.where(blob_id:/#{recipe_id}/).sort_by{|v|
-						STDERR.puts v.blob_id
-						v.blob_id
-					}[0]
+			for task,prob in task_priority do
+				next if Random.rand > prob
+				STDERR.puts "#{recipe_id}: #{task}"
+				tickets = self.where(blob_id:/#{recipe_id}/, task:task,completion:false)
+				if for_check then
+					tickets = tickets.nor(query_or)
 				else
-				# semi_random 
-=begin
-					if rand < 0.2 then
-						sample = self.where(blob_id:/#{recipe_id}/, task: "task2", completion:false).not.any_in(:annotator=>[annotator]).sample
-						return sample if sample
-					end
-=end
-					if rand < 0.3 then
-						sample = self.where(blob_id:/#{recipe_id}/, task: "task3", completion:false).not.any_in(:annotator=>[annotator]).where(query_or).sample
-						return sample if sample
-						
-					end
-					sample = self.where(blob_id:/#{recipe_id}/, completion:false).where(query_or).not.any_in(:annotator=>[annotator]).sample
+					tickets = tickets.or(query_or).not.any_in(:annotator=>[annotator])
+				end
+
+				case strategy
+					when 'ordered' then
+						sample = tickets.sort_by{|v|v.blob_id}[0]
+					else # random, semi_random 
+						sample = tickets.sample
+				end
+
+				break if sample
 			end
-			
 			return sample if sample
 		end
 		return nil

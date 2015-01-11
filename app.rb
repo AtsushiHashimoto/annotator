@@ -514,22 +514,11 @@ class KUSKAnnotator < Sinatra::Base
 		login_check
 		return 404 unless am_i_checker?
 		
-
-		for i in 16.downto(settings.minimum_micro_task_num[task]-1) do
-			targets = Ticket.where(
-													 :task=>task,
-													 :annotator.with_size=>i,
-													 :completion=>false)
-													 
-			STDERR.puts "#{i}: #{targets.count}"
-			break if targets.count > 0
-		end
-		return "No more passbacked works." if !targets
-		ticket = targets.sample		
-		
+		ticket = Ticket.select_ticket(@user,settings.ticket_sampling_strategy,true,{task=>1.0})
 		session[:ticket] = ticket
 		redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
 	end
+
 	get '/check/:task/:blob_id' do |task,blob_id|		
 		login_check
 		return 404 unless am_i_checker?
@@ -544,10 +533,6 @@ class KUSKAnnotator < Sinatra::Base
 		
 		blob_id = @ticket['blob_id']
 		@meta_tags = generate_meta_tags(@ticket)
-		
-		for key,val in @meta_tags do
-			STDERR.puts "#{key}: #{val}"
-		end
 
 =begin
 		if task != ticket[:task] or blob_id != ticket[:blob_id]
@@ -562,8 +547,8 @@ class KUSKAnnotator < Sinatra::Base
 		for p in passbacks do
 			@micro_tasks += p.micro_tasks
 		end
-		for mtask in MicroTask.where(blob_id:blob_id) do
-			#			@micro_tasks << mtask
+		for mtask in MicroTask.where(task:task,blob_id:blob_id) do
+			@micro_tasks << mtask
 		end
 		@task = task
 		#return "#{micro_tasks.size} micro_tasks has been found."		
