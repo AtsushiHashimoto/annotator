@@ -63,7 +63,7 @@ image_blob_id_regex: '\A.*\/blob_images\/(.+)\.png\Z'
 recipe_blob_path: '/Users/ahashimoto/annotator/blob_recipes'
 recipe_blob_globpath: '*'
 recipe_blob_id_regex: '\A.*\/blob_recipes/(.+)\Z'
-recipe_id_regex: '.*(2014RC\d\d).*'
+recipe_id_regex: '.*(20\d\d..\d\d).*’
 
 # 画像表示サイズ
 # 1040 x 776
