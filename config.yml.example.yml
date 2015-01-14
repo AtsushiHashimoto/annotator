@@ -79,3 +79,10 @@ task1:
 task2:
  synonims: '/Users/ahashimoto/recipesentenceclustering/ontology/synonym.tsv'
  overview: 'overview.jpg'
+
+task4:
+ video_dir: videos # “#{image_blob_path}/#{video_dir}”
+ segment_file: segments.csv
+
+
+
