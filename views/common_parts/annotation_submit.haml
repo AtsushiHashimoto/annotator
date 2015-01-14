@@ -2,6 +2,6 @@
 	%input{:type => "hidden", :name => key, :value => @meta_tags[key]}
 - if @meta_tags.include?(:checker) and !@meta_tags[:checker].empty?
 	%input{:type => "hidden", :name => 'checker', :value => @meta_tags[:checker]}
-- unless "rest" == @meta_tags[:task] 
+- unless @skippable == false
 	%button.btn.btn-warning.breakable_link.timer-hide.skip{:type=>"button"} スキップ
 %button.btn.btn-success.breakable_link.timer-hide.go_to_next{:type=>"submit"} 次へ

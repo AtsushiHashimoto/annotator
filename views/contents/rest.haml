@@ -3,7 +3,7 @@
 %p 休憩が終了したら[次へ]が表示されますので，それをクリックして，作業を再開してください．
 %form#annotation_completion{:action => '/annotation', :method => 'post'}
 	%fieldset
+		- @skippable = false
 		= haml :'common_parts/annotation_submit'
-
 
 %p
