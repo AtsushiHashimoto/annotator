@@ -1,0 +1,41 @@
+%link(rel="stylesheet" href="/select2/select2.css")
+.form.col-lg-12
+	- @skippable = false
+	- for i in 0...@meta_tags[:segment_num].to_i
+		-if i == @meta_tags[:current_segment]
+			- cls = "seg#{i} task4_current_segment"
+			- preload = 'auto'
+			%ul
+				%li 動きがないフレームは保存していないため，動きが少ないエリアでは動画の長さが短くなります(動画自体がない場合もあります)．
+				%li 候補となる動詞を良く探して，状況にあうものを見つけてください．見つからなければ場合には「不明」を選択してください．
+		-elsif i == @meta_tags[:current_segment]-1
+			- cls = "seg#{i} task4_prev_segment"
+		-else
+			- cls = "seg#{i}"
+			- preload = 'none'
+		.task4_segment{:class=>cls}
+			%table
+				%tr
+					- for cam in ["cameraC","cameraA","cameraB"]
+						%td
+							- file = "/#{File.basename(@local_blob_image_path)}/#{@meta_tags[:blob_path]}/#{cam}/#{"%07d"%i}.webm"
+							- if File.exist?(File.dirname(@local_blob_image_path) + file)
+								%video{:src=>file,:controls=>true,:preload=>preload}
+									= "#{cam}/#{"%07d"%i}.webm"
+					%td
+						-if i < @meta_tags[:current_segment]
+							-if @past_labels.include?(i)
+								= @past_labels[i]
+							-else
+								他の人がタグをつけました．
+						-elsif i == @meta_tags[:current_segment]
+							%form#annotation_completion{:action => '/annotation', :method => 'post'}
+								%select.select#task4select(name="label")
+									%option(value="" selected) 選択してください
+									-for verb in @verbs
+										%option{:value=>verb[0]}= "#{verb[1]}(=#{verb[0]})"
+									%option(value="その他") その他
+								= haml :'common_parts/annotation_submit'
+
+%script(src="/select2/select2.min.js")
+%script(src="/js/task4.js")

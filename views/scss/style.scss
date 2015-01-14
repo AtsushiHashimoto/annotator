@@ -169,5 +169,27 @@ body{
 		width: 100%;
 	}
 
+	/*** task4 ***/
+	.task4_segment{
+		table{
+			width: 100%;
+			tr{
+				td{
+					width: 25%;
+					padding: 10px;
+					video{
+						width:100%
+					}
+					.select2-container{
+						width:100%;
+					}
+				}
+			}
+		}
+	}
+	.task4_current_segment{
+		background-color: $accent_col;
+	}
+
 }
 

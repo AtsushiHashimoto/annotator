@@ -18,7 +18,8 @@ module Helpers
 				when 'task3'
 					return generate_task3
 				when 'task4'
-					return generate_task4
+				return generate_task4(settings.image_blob_path,settings.task4['video_dir'])
+
 				when 'task5'
 					return generate_task5
 				when 'task6'
@@ -34,9 +35,70 @@ module Helpers
 		def generate_task5
 			0
 		end
-		def generate_task4
-			0
+		def generate_task4(image_blob_path, video_dir)
+			# task4の生成
+			task = 'task4'
+			
+			extension = '.webm'
+			# videosディレクトリがあるデータをチェック
+			count = 0
+			blob_image_dirs = Dir.glob(image_blob_path + "/*")
+			STDERR.puts image_blob_path
+			for dir in blob_image_dirs do
+				STDERR.puts dir
+				next unless dir =~ /#{image_blob_path}\/(.+)/
+				data_id = $1
+				dir = "#{dir}/#{video_dir}"
+				STDERR.puts dir
+				next unless File.exist?(dir)
+				video_list = `find #{dir} | grep #{extension}`.split("\n").map{|v|
+					File.basename(v.strip,extension)
+				}.sort
+				
+				# segmentの情報を読み込む
+				segment_file = dir + '/' + settings.task4['segment_file']
+				segments = []
+				File.open(segment_file,'r').each{|line|
+					frame,time = line.split(',').map{|v|v.strip}
+					segments << {:frame=>frame.to_i, :time=>time.to_f}
+				}
+				
+				for i_str in video_list[0...-1] do
+					i = i_str.to_i
+					
+					blob_id = "#{data_id}:video:#{i_str}"
+					t_id = task + ':' + blob_id
+				
+					next unless Ticket::where(_id:t_id).empty?
+					
+					blob_path = "#{data_id}/#{video_dir}/#{i_str}#{extension}"
+					
+					ticket = Ticket.new(_id: t_id, blob_id: blob_id, task: task, blob_path: blob_path, annotator:[])
+					
+					ticket['start_frame'] = segments[i][:frame]
+					ticket['start_time'] = segments[i][:time]
+					ticket['end_frame'] = segments[i+1][:frame]
+					ticket['end_time'] = segments[i+1][:time]
+					ticket['segment_num'] = segments.size-1
+					
+=begin
+					STDERR.puts ""
+					for key,val in ticket.as_json do
+						STDERR.puts "#{key}: #{val}"
+					end
+=end
+					unless ticket.save! then
+						raise MyCustomError, "新規チケットの発行に失敗しました"
+					end
+					count = count + 1
+
+				end
+			end
+			
+			
+			count
 		end
+
 		def generate_task3
 			# task3の生成
 			task = 'task3'
@@ -50,17 +112,25 @@ module Helpers
 			existing_tickets = Ticket.where(task: task)
 			
 			seed_task1 = Ticket::where(task:'task1',completion:true)
-			recipes = MicroTask::where(task:'task2')
-			count = 0
 			
+			STDERR.puts seed_task1.size
+		
+			
+			#recipes = MicroTask::where(task:'task2')
+			count = 0
+			count_no_annotation = 0
 			for seed in seed_task1 do
 				# validate
 				# 本当は複数ユーザからの入力に対して正しい答えを判定したい!!
 				# 別関数で統合を促す．(←答えの一致はチェック済み→どれを選んでも一緒)
 				mtask = MicroTask::where(task:'task1',blob_id:seed.blob_id)[0]
 				raise "no mtask has been found." unless mtask
-				next unless mtask['annotation']
-
+				
+				unless mtask['annotation'] then
+					count_no_annotation = count_no_annotation+1
+					next
+				end
+				
 
 				# recipeを取得
 				_id = task + "_" + mtask['blob_id']
@@ -98,7 +168,6 @@ module Helpers
 						
 						
 						type = annotation['type']
-						STDERR.puts type
 						
 						raw_image =  md[1..-1].join()
 						if type == 'put' then
@@ -120,7 +189,7 @@ module Helpers
 				end
 				
 			end			
-			
+			STDERR.puts "no annotation tickets: #{count_no_annotation}"  
 			count
 		end
 

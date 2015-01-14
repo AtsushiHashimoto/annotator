@@ -127,6 +127,7 @@ module Helpers
 						when '調理器具'
 							type = :utensil
 						when '動作'
+							hash[:verb] << [value,description]
 							next
 					end
 					hash[type] << "#{description}"

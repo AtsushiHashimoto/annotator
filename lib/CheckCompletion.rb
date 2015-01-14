@@ -28,6 +28,8 @@ module Helpers
 				return check_completion_task2(ticket,mtasks)
 				when 'task3' then
 				return check_completion_task3(ticket,mtasks)
+				when 'task4' then
+				return check_completion_task4(ticket,mtasks)
 				else
 				#未実装
 				raise "Unknown task"
@@ -125,6 +127,11 @@ module Helpers
 			
 			
 		def check_completion_task3(ticket,mtasks)
+			labels = mtasks.map{|v| v['label']}.uniq
+			return true if labels.size == 1
+		end
+				
+		def check_completion_task4(ticket,mtasks)
 			labels = mtasks.map{|v| v['label']}.uniq
 			return true if labels.size == 1
 		end

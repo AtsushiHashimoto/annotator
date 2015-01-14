@@ -36,7 +36,7 @@ class Ticket
 
 	def self.select_ticket(annotator, strategy='semi_random', for_check = false, task_priority={})
 		# annotatorの人数4人以上だったらタグ付けしない
-		task_priority = {'task4'=>0.3,'task3'=>0.4,'task2'=>0.05,'task1'=>1.0} if task_priority.empty?
+		task_priority = {'task4'=>0.95,'task3'=>0.4,'task2'=>0.05,'task1'=>1.0} if task_priority.empty?
 
 
 		query_or = []
@@ -63,11 +63,15 @@ class Ticket
 					tickets = tickets.or(query_or).not.any_in(:annotator=>[annotator])
 				end
 
-				case strategy
-					when 'ordered' then
-						sample = tickets.sort_by{|v|v.blob_id}[0]
-					else # random, semi_random 
-						sample = tickets.sample
+				if task=='task4' then
+					sample = tickets.sort_by{|v|v.blob_id}[0]
+				else
+					case strategy
+						when 'ordered' then
+							sample = tickets.sort_by{|v|v.blob_id}[0]
+						else # random, semi_random 
+							sample = tickets.sample
+					end
 				end
 
 				break if sample

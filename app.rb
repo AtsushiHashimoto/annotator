@@ -212,7 +212,6 @@ class KUSKAnnotator < Sinatra::Base
 
 	get '/task/:task/:blob_id' do |task,blob_id|
 		@ticket = session[:ticket].as_json
-		STDERR.puts 
 		redirect '/task', 303 unless @ticket
 		@ticket = @ticket.with_indifferent_access
 		redirect '/task', 303 unless @ticket[:task] == task
@@ -255,6 +254,14 @@ class KUSKAnnotator < Sinatra::Base
 				@meta_tags[:candidates] = @ticket['candidates'].to_json
 				@meta_tags[:box] = @ticket['box'].to_json
 				@meta_tags[:mask_image] = generate_mask_image(@ticket[:blob_path])
+			when 'task4'
+				@meta_tags[:blob_path] = File.dirname(@ticket['blob_path'])
+				@meta_tags[:current_segment] = @ticket['blob_id'].split(':')[-1].to_i
+				@local_blob_image_path = settings.image_blob_path
+				@verbs = settings.synonyms[:verb]
+				blob_id_common_part = @meta_tags[:blob_id].split(':')[0...-1].join(':')
+				@past_labels = MicroTask.where(worker:@user,task:task,blob_id:/#{blob_id_common_part}:.+/).to_a.map{|v|[v['blob_id'].split(':')[-1].to_i,  v['label']]}
+				@past_labels = Hash[*@past_labels.flatten]
 		end
 		
 		@title = "#{task.upcase} for #{blob_id}"
@@ -343,10 +350,10 @@ class KUSKAnnotator < Sinatra::Base
 					mtask[tar] = params[tar].split(",")
 				end
 			when 'task3' then
-				STDERR.puts params
+				#	STDERR.puts params
 				label = params[:label]
 				options = label.split('+')
-				STDERR.puts options.join(" ")
+				# STDERR.puts options.join(" ")
 				label = options[0]
 				case label
 					when 'tools_not_in_list' then
@@ -363,6 +370,8 @@ class KUSKAnnotator < Sinatra::Base
 					else
 						mtask[:label] = params[:label]
 				end
+			when 'task4' then
+				mtask[:label] = params[:label]
 			else
 				STDERR.puts "ERROR: unknown task '#{params[:task]}' is posted."
 		end
