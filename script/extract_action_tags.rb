@@ -61,10 +61,14 @@ Ticket.where(task:'task4',completion:true).each{|t|
 	}
 }
 
+def min_sec(sec)
+	return sec.to_i/60, ((sec - sec.to_i) + sec.to_i % 60).round(3)
+end
+
 labels.each{|data_id,tags|
 	fout = File.open("#{OutputDir}/#{data_id}.csv",'w')
-	tags.sort_by{|v|v[:start_frame]}.each{|tag|
-		fout.puts "#{tag[:start_frame]}, #{tag[:end_frame]}, #{tag[:label]}"
+	tags.sort_by{|v|v[:start_time]}.each{|tag|
+		fout.puts "#{min_sec(tag[:start_time]).join(",")}, #{min_sec(tag[:end_time]).join(",")}, #{tag[:label]}"
 	}
 	fout.close
 }
