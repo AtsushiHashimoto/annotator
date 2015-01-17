@@ -59,7 +59,7 @@ CAMERAS.each{|cam|
 	start_time = nil
 	File.open(timestamp_file).each{|line|
 		buf = line.split(",").map{|v|v.strip}
-
+		next if buf[2].empty?
 #=begin
 		start_time = parseTimestamp(buf[2]) unless start_time		
 		ts << {
@@ -79,19 +79,20 @@ CAMERAS.each{|cam|
 segments = []
 CAMERAS.each{|cam|
 	ts = timestamps[cam]
-		
+
 	image_dir_put = "#{data_id_dir}/extract/#{cam}/PUT"
 	Dir.glob("#{image_dir_put}/*.png").sort.each{|image|
 		image =~ /putobject_(\d{7})_\d{3}\.png/
 		frame = $1.to_i - put_detection_delay
-		segments << ts[frame]
+		segments << ts[frame]	if ts[frame]
+
 	}
 
 	image_dir_taken = "#{data_id_dir}/extract/#{cam}/TAKEN"
 	Dir.glob("#{image_dir_taken}/*.png").sort.each{|image|
 		image =~ /takenobject_(\d{7})_\d{3}\.png/
 		frame = $1.to_i
-		segments << ts[frame]
+		segments << ts[frame]	if ts[frame]
 	}
 	
 }
@@ -128,7 +129,9 @@ for i in 0...segments.size-1 do
 		cam_file = data_id_dir + "/#{cam}_#{data_id}.mp4"
 		cam_output_dir = "#{output_dir}/#{cam}"
 		start_frame = timestamps[cam].search_video_index(segment_obs[0])
-		end_frame = timestamps[cam].search_video_index(segment_obs[1]) -1
+		temp = timestamps[cam].search_video_index(segment_obs[1])
+		next unless temp
+		end_frame = temp -1
 		end_frame = timestamps[cam][-1] unless end_frame # 
 		next if start_frame >= end_frame
 		
