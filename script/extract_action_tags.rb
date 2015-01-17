@@ -68,6 +68,7 @@ end
 labels.each{|data_id,tags|
 	fout = File.open("#{OutputDir}/#{data_id}.csv",'w')
 	tags.sort_by{|v|v[:start_time]}.each{|tag|
+		next if 'その他'==tag[:label]
 		fout.puts "#{min_sec(tag[:start_time]).join(",")}, #{min_sec(tag[:end_time]).join(",")}, #{tag[:label]}"
 	}
 	fout.close
