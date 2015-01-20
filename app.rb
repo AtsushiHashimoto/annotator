@@ -525,6 +525,7 @@ class KUSKAnnotator < Sinatra::Base
 		
 		ticket = Ticket.select_ticket(@user,settings.ticket_sampling_strategy,true,{task=>1.0})
 		session[:ticket] = ticket
+		return "No more tickets that shoud be checked" unless ticket
 		redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
@@ -561,15 +562,32 @@ class KUSKAnnotator < Sinatra::Base
 		end
 		@task = task
 		#return "#{micro_tasks.size} micro_tasks has been found."		
-		
-		if task == "task2" then
+
+		case task
+			when 'task2'
 				redirect "/task/#{@ticket.task}/#{@ticket.blob_id}?checker=true",303
+			when 'task4'
+				@meta_tags[:blob_path] = File.dirname(@ticket['blob_path'])
+				@meta_tags[:current_segment] = @ticket['blob_id'].split(':')[-1].to_i
+				@local_blob_image_path = settings.image_blob_path
+				@verbs = settings.synonyms[:verb]
+				blob_id_common_part = @meta_tags[:blob_id].split(':')[0...-1].join(':')
+
+				@fixed_labels = {}
+				tickets = Ticket.where(task:task,blob_id:/#{blob_id_common_part}:.+/,completion:true)
+				other_tasks = MicroTask.where(task:task,blob_id:/#{blob_id_common_part}:.+/)
+				tickets.each{|t|
+					label = other_tasks.where(blob_id:t.blob_id)[0]['label']
+					@fixed_labels[t['blob_id'].split(':')[-1].to_i] = label
+				}
 		end
 		
 		for key,val in @meta_tags do
 			STDERR.puts "#{key}: #{val}"
 		end
-		
+
+
+
 		haml :"check/#{task}"
 	end
 =begin
