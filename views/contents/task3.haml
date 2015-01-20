@@ -6,6 +6,17 @@
 		.no-padding.col-lg-6
 			%canvas#img{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height],:class => "clickable"}
 			%br
+			%p
+				物体領域の座標	
+				- box = JSON.parse(@meta_tags[:box])
+				%br
+				= "x: #{box['x'] * @meta_tags[:image_width]}"
+				%br
+				= "y: #{box['y'] * @meta_tags[:image_height]}"
+				%br
+				= "width: #{box['width'] * @meta_tags[:image_width]}"
+				%br
+				= "height: #{box['height'] * @meta_tags[:image_height]}"
 			%button.btn.btn-default#btn-raw_image{:type=>'button'} 画像全体を表示
 			%button.btn.btn-default#btn-mask_image{:type=>'button'} 検出された物体領域のみを表示
 			%br
