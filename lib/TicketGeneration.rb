@@ -160,13 +160,16 @@ module Helpers
 			
 				
 				for annotation in mtask['annotation'] do
+						next if annotation['width']<=0
+						next if annotation['height']<=0
 						ticket = Ticket.new(_id: _id + "_#{annotation_count}", blob_id: blob_id + "::#{annotation_count}", task: task, blob_path: blob_path, annotator:[])
 						ticket['event'] = event
 						ticket['obj_id'] = obj_id
 						ticket['candidates'] = recipe_info['ingredients'] + recipe_info['seasonings'] + recipe_info['utensils']
 						ticket['box'] = annotation
-						
-						
+
+
+
 						type = annotation['type']
 						
 						raw_image =  md[1..-1].join()
