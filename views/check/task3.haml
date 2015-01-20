@@ -1,0 +1,43 @@
+%link{:rel=>"stylesheet", :href=>"http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"}
+.form.col-lg-12
+	.col-lg-12
+		矩形で表された物体に相当するラベルを右のリストから一つ選んで下さい．詳しくは画面下の指示に従って下さい．
+	.no-padding.col-lg-5
+		%canvas#img{:width=>@meta_tags[:image_width], :height=>@meta_tags[:image_height],:class => "clickable"}
+		%br
+		%button.btn.btn-default#btn-raw_image{:type=>'button'} 画像全体を表示
+		%button.btn.btn-default#btn-mask_image{:type=>'button'} 検出された物体領域のみを表示
+		%br
+		%br
+		%fieldset
+
+	.no-padding.col-lg-7
+		- for mtask in @micro_tasks
+			%form.annotation{:action => '/annotation', :method => 'post'}
+				%fieldset
+					%button.btn.btn-success.breakable_link.go_to_next{:type=>"submit"}= mtask['label'].split('::').join('の')
+					= "(labeled by #{mtask['worker']})"
+			%hr
+					
+		%a{:href=>"/task/#{@task}/#{@ticket.blob_id}?checker=true"}
+			%button.btn.btn-warning.breakable_link.goto_task{:type=>"button"} 自分でつけ直す(正解がない)
+
+
+	.no-padding.col-lg-12
+		指示内容
+		%ul
+			%li
+				複数の物体が矩形に囲まれている場合は，矩形に内接する物体(矩形内で最も矩形にフィットする物体)を選んでください．ただし，矩形は手動でつけられたものなので，多少物体がはみ出したりしている場合があります．
+			%li
+				物体の一部の場合は，ラベル候補右列の「○○のXX」というラベルをつけてください．ただしXXには基本的に以下のものを入れて，表記揺れの無い様にしてください．以下のリストのいずれにも当てはまらないと思われる場合は監督者に確認してください．
+				%br
+				[フタ, 食べない部分，ボトル，包装]
+		矩形に囲まれた調味料が何かについては，下記の写真を参考にして判別してください．下記の写真にない調味料については監督者に訪ねてください．
+		%img.col-lg-5(src="/img/seasonings_front.jpg" width="50%")
+		%img.col-lg-5(src="/img/seasonings2_front.jpg" width="50%")
+		%br
+		%img.col-lg-5(src="/img/seasonings_top.jpg" width="50%")
+		%img.col-lg-5(src="/img/seasonings2_top.jpg" width="50%")
+%script(src="/js/jcanvas.min.js")
+%script(src="http://code.jquery.com/ui/1.9.2/jquery-ui.js")
+%script(src="/js/task3.js")
