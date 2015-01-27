@@ -79,7 +79,18 @@ class Ticket
 			end
 			return sample if sample
 		end
-		return nil
+		for task,prob in task_priority do
+			tickets = self.where(task:task,completion:false)
+			task_num = min_task_num[task]
+			if for_check then
+				sample = tickets.nor(query_or[0...task_num])
+			else
+				sample = tickets.or(query_or[0...task_num]).not.any_in(:annotator=>[annotator])
+			end
+			break if sample
+		end
+		
+		return sample
 #, :annotator=>{"$elemMatch"=>{"$regex"=>/#{annotator}/}}}).sample
 
 	end
