@@ -198,10 +198,10 @@ class KUSKAnnotator < Sinatra::Base
 			session[:start] = NULL_TIME
 			redirect '/rest', 303			
 		end
-		ticket = Ticket.select_ticket(@user, settings.ticket_sampling_strategy)
+		ticket = Ticket.select_ticket(@user, settings.minimum_micro_task_num, settings.ticket_sampling_strategy)
 		unless ticket then
 			# 一度，生成を試みる
-			ticket = Ticket.select_ticket(@user)
+			ticket = Ticket.select_ticket(@user, settings.minimum_micro_task_num, settings.ticket_sampling_strategy)
 			unless ticket then
 				redirect "/end/#{END_STATE[0]}", 303
 			end
@@ -523,7 +523,7 @@ class KUSKAnnotator < Sinatra::Base
 		login_check
 		return 404 unless am_i_checker?
 		
-		ticket = Ticket.select_ticket(@user,settings.ticket_sampling_strategy,true,{task=>1.0})
+		ticket = Ticket.select_ticket(@user,settings.minimum_micro_task_num,settings.ticket_sampling_strategy,true,{task=>1.0})
 		session[:ticket] = ticket
 		return "No more tickets that shoud be checked" unless ticket
 		redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
@@ -568,7 +568,7 @@ class KUSKAnnotator < Sinatra::Base
 				redirect "/task/#{@ticket.task}/#{@ticket.blob_id}?checker=true",303
 			when 'task4'
 				@meta_tags[:blob_path] = File.dirname(@ticket['blob_path'])
-				@meta_tags[:current_segment] = @ticket['blob_id'].split(':')[-1].to_i
+				@meta_tags[:current_segment] = @ticket[:blob_id].split(':')[-1].to_i
 				@local_blob_image_path = settings.image_blob_path
 				@verbs = settings.synonyms[:verb]
 				blob_id_common_part = @meta_tags[:blob_id].split(':')[0...-1].join(':')
