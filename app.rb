@@ -192,8 +192,8 @@ class KUSKAnnotator < Sinatra::Base
 		end
 
 		# 休憩の判定
-		puts curr_time
-		puts session[:start]
+		#puts curr_time
+		#puts session[:start]
 		if curr_time - session[:start] > time2sec(settings.work_time) then
 			session[:start] = NULL_TIME
 			redirect '/rest', 303			
@@ -207,7 +207,9 @@ class KUSKAnnotator < Sinatra::Base
 			end
 		end	
 		session[:ticket] = ticket
-		redirect "/task/#{ticket.task}/#{ticket.blob_id}", 303
+		STDERR.puts "====================="
+		STDERR.puts ticket._id
+		redirect "/task/#{ticket['task']}/#{ticket['blob_id']}", 303
 	end
 
 	get '/task/:task/:blob_id' do |task,blob_id|
@@ -526,6 +528,7 @@ class KUSKAnnotator < Sinatra::Base
 		ticket = Ticket.select_ticket(@user,settings.minimum_micro_task_num,settings.ticket_sampling_strategy,true,{task=>1.0})
 		session[:ticket] = ticket
 		return "No more tickets that shoud be checked" unless ticket
+		STDERR.puts ticket
 		redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
@@ -577,6 +580,7 @@ class KUSKAnnotator < Sinatra::Base
 				tickets = Ticket.where(task:task,blob_id:/#{blob_id_common_part}:.+/,completion:true)
 				other_tasks = MicroTask.where(task:task,blob_id:/#{blob_id_common_part}:.+/)
 				tickets.each{|t|
+					STDERR.puts t.blob_id
 					label = other_tasks.where(blob_id:t.blob_id)[0]['label']
 					@fixed_labels[t['blob_id'].split(':')[-1].to_i] = label
 				}
