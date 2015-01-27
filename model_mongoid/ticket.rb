@@ -34,13 +34,13 @@ class Ticket
 		ticket.save
 	end
 
-	def self.select_ticket(annotator, strategy='semi_random', for_check = false, task_priority={})
-		# annotatorの人数4人以上だったらタグ付けしない
+	def self.select_ticket(annotator, min_task_num, strategy='semi_random', for_check = false, task_priority={})
 		task_priority = {'task4'=>0.95,'task3'=>0.4,'task2'=>0.05,'task1'=>1.0} if task_priority.empty?
 
-
+		max_task_num = min_task_num.values.max
+		# annotatorの人数12人以上だったらタグ付けしない
 		query_or = []
-		for i in 0...2 do
+		for i in 0...max_task_num do
 			query_or << {:annotator.with_size=>i}
 		end
 		#		query_or = {"$or"=> query_or}
@@ -57,10 +57,11 @@ class Ticket
 				next if Random.rand > prob
 				STDERR.puts "#{recipe_id}: #{task}"
 				tickets = self.where(blob_id:/#{recipe_id}/, task:task,completion:false)
+				task_num = min_task_num[task]
 				if for_check then
-					tickets = tickets.nor(query_or)
+					tickets = tickets.nor(query_or[0...task_num])
 				else
-					tickets = tickets.or(query_or).not.any_in(:annotator=>[annotator])
+					tickets = tickets.or(query_or[0...task_num]).not.any_in(:annotator=>[annotator])
 				end
 
 				if task=='task4' then
