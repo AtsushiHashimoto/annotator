@@ -207,9 +207,7 @@ class KUSKAnnotator < Sinatra::Base
 			end
 		end	
 		session[:ticket] = ticket
-		STDERR.puts "====================="
-		STDERR.puts ticket._id
-		redirect "/task/#{ticket['task']}/#{ticket['blob_id']}", 303
+		redirect "/task/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
 	get '/task/:task/:blob_id' do |task,blob_id|
@@ -528,7 +526,6 @@ class KUSKAnnotator < Sinatra::Base
 		ticket = Ticket.select_ticket(@user,settings.minimum_micro_task_num,settings.ticket_sampling_strategy,true,{task=>1.0})
 		session[:ticket] = ticket
 		return "No more tickets that shoud be checked" unless ticket
-		STDERR.puts ticket
 		redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
