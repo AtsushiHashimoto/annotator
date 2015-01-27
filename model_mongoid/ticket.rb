@@ -55,7 +55,7 @@ class Ticket
 		for recipe_id in cands do
 			for task,prob in task_priority do
 				next if Random.rand > prob
-				STDERR.puts "#{recipe_id}: #{task}"
+				#STDERR.puts "#{recipe_id}: #{task}"
 				tickets = self.where(blob_id:/#{recipe_id}/, task:task,completion:false)
 				task_num = min_task_num[task]
 				if for_check then
@@ -83,9 +83,9 @@ class Ticket
 			tickets = self.where(task:task,completion:false)
 			task_num = min_task_num[task]
 			if for_check then
-				sample = tickets.nor(query_or[0...task_num])
+				sample = tickets.nor(query_or[0...task_num]).sample
 			else
-				sample = tickets.or(query_or[0...task_num]).not.any_in(:annotator=>[annotator])
+				sample = tickets.or(query_or[0...task_num]).not.any_in(:annotator=>[annotator]).sample
 			end
 			break if sample
 		end
