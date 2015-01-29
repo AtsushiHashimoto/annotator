@@ -35,7 +35,7 @@ class Ticket
 	end
 
 	def self.select_ticket(annotator, min_task_num, strategy='semi_random', for_check = false, task_priority={})
-		task_priority = {'task3'=>0.6,'task2'=>0.05,'task1'=>1.0,'task4'=>0.95} if task_priority.empty?
+		task_priority = {'task1'=>0.7,'task2'=>0.05,'task3'=>0.90,'task4'=>0.00} if task_priority.empty?
 
 		max_task_num = min_task_num.values.max
 		# annotatorの人数12人以上だったらタグ付けしない
@@ -44,12 +44,16 @@ class Ticket
 			query_or << {:annotator.with_size=>i}
 		end
 		#		query_or = {"$or"=> query_or}
-		
+
+		#番号の大きい被験者から順に選ぶ
+		cands = Array.new(99){|i| "S0#{"%02d"%(i+1)}"}.reverse
+=begin
 		#番号の若いレシピから順に選ぶ
 		cands =  Array.new(3){|i| "2015YR%02d"%(i+1)}
 		cands +=  Array.new(20){|i| "2014RC%02d"%(i+1)}
 		#cands = ["2015YR","2014RC"].product(Array.new(20){|i| "%02d"%(i+1)}).map{|v|v.join}
-		
+=end
+
 		tickets = self.where(completion:false)
 		
 		for recipe_id in cands do
@@ -83,10 +87,22 @@ class Ticket
 			tickets = self.where(task:task,completion:false)
 			task_num = min_task_num[task]
 			if for_check then
-				sample = tickets.nor(query_or[0...task_num]).sample
+				tickets = tickets.nor(query_or[0...task_num])
 			else
-				sample = tickets.or(query_or[0...task_num]).not.any_in(:annotator=>[annotator]).sample
+				tickets = tickets.or(query_or[0...task_num]).not.any_in(:annotator=>[annotator])
 			end
+
+			if task=='task4' then
+				sample = tickets.sort_by{|v|v.blob_id}[0]
+			else
+				case strategy
+					when 'ordered' then
+						sample = tickets.sort_by{|v|v.blob_id}[0]
+					else # random, semi_random 
+						sample = tickets.sample
+				end
+			end
+
 			break if sample
 		end
 		
