@@ -23,17 +23,25 @@ module Helpers
 			
 			case task
 				when 'task1' then
-				return check_completion_task1(ticket,mtasks)
+				result = check_completion_task1(ticket,mtasks)
 				when 'task2' then
-				return check_completion_task2(ticket,mtasks)
+				result = check_completion_task2(ticket,mtasks)
 				when 'task3' then
-				return check_completion_task3(ticket,mtasks)
+				result = check_completion_task3(ticket,mtasks)
 				when 'task4' then
-				return check_completion_task4(ticket,mtasks)
+				result = check_completion_task4(ticket,mtasks)
 				else
 				#未実装
 				raise "Unknown task"
-			end			
+			end
+
+			if !result and ticket.completion then
+				ticket.completion = false
+				ticket.update!
+			end
+
+			return result
+
 		end
 			
 			
