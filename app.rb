@@ -577,8 +577,12 @@ class KUSKAnnotator < Sinatra::Base
 				tickets = Ticket.where(task:task,blob_id:/#{blob_id_common_part}:.+/,completion:true)
 				other_tasks = MicroTask.where(task:task,blob_id:/#{blob_id_common_part}:.+/)
 				tickets.each{|t|
-					STDERR.puts t.blob_id
-					label = other_tasks.where(blob_id:t.blob_id)[0]['label']
+					completed_tasks = other_tasks.where(blob_id:t.blob_id)
+					if completed_tasks.empty? then
+						return "ERROR: empty micro task for completed ticket (blob_id:#{t.blob_id})"
+					end
+						
+					label = completed_tasks[0]['label']
 					@fixed_labels[t['blob_id'].split(':')[-1].to_i] = label
 				}
 		end
