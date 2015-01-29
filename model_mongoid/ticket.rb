@@ -35,7 +35,7 @@ class Ticket
 	end
 
 	def self.select_ticket(annotator, min_task_num, strategy='semi_random', for_check = false, task_priority={})
-		task_priority = {'task4'=>0.95,'task3'=>0.4,'task2'=>0.05,'task1'=>1.0} if task_priority.empty?
+		task_priority = {'task3'=>0.6,'task2'=>0.05,'task1'=>1.0,'task4'=>0.95} if task_priority.empty?
 
 		max_task_num = min_task_num.values.max
 		# annotatorの人数12人以上だったらタグ付けしない
