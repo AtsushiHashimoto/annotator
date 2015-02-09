@@ -3,6 +3,30 @@ require 'rubygems'
 require 'active_support'
 require 'parallel'
 
+WIN = false
+GPU_DEV = 0
+if WIN then
+	def conv2winPath(path)
+		puts path
+		win_path = ""
+		if path =~ /\/cygdrive\/(.)\/(.*)/ then
+			win_path = "#{$1.upcase}:\\"
+			path = $2
+		end
+		flag_not_file = false
+		if path =~ /(.+)\/$/ then
+			flag_not_file = true
+			path = $1
+		end
+		win_path = win_path + path.split("/").join("\\")
+		win_path = win_path + "\\" if flag_not_file
+
+		return win_path
+	end
+else
+	WIN_DRIVE = ""
+end
+
 $stdout.sync = true
 
 ARG_NUM = 1
@@ -50,7 +74,7 @@ def parseTimestamp(str)
 	Time.utc($1.to_i,$2.to_i,$3.to_i,$4.to_i,$5.to_i,"#{$6}.#{$7}".to_r)
 end
 
-timestamps = {}
+@timestamps = {}
 
 CAMERAS.each{|cam|
 	timestamp_file = "#{data_id_dir}/#{cam}_timestamp.csv"
@@ -66,11 +90,13 @@ CAMERAS.each{|cam|
 			:observ_frame=>buf[1].to_i,
 			:timestamp=>(parseTimestamp(buf[2]) - start_time)
 		}
-		#=end
+#=end
 #		ts << buf[1].to_i
 	}
-	timestamps[cam] = ts
+	@timestamps[cam] = ts
 }
+
+
 
 
 # 切れ目
@@ -78,7 +104,7 @@ CAMERAS.each{|cam|
 # 30fpsのものと10fpsのもので値が違う
 segments = []
 CAMERAS.each{|cam|
-	ts = timestamps[cam]
+	ts = @timestamps[cam]
 
 	image_dir_put = "#{data_id_dir}/extract/#{cam}/PUT"
 	Dir.glob("#{image_dir_put}/*.png").sort.each{|image|
@@ -115,34 +141,51 @@ class Array
 	end
 end
 
-for i in 0...segments.size-1 do
-	segment_obs = [segments[i][:observ_frame],segments[i+1][:observ_frame]]
-	
-	if segment_obs[0] > segment_obs[1] then
-			STDERR.puts "Segments must be unique and sorted. This cannot happen."
-			exit 0
+def trim(start_frame,end_frame, src_mov, dest_mov)
+	_dest_mov = dest_mov
+	if src_mov == dest_mov then
+		ext_name = File.extname(dest_mov)
+		_dest_mov = File.dirname(dest_mov)+File.basename(dest_mov,ext_name) + "_temp" + ext_name
 	end
-	
-	#puts segment_obs.join(" => ")
 
-	CAMERAS.each{|cam|
-		cam_file = data_id_dir + "/#{cam}_#{data_id}.mp4"
-		cam_output_dir = "#{output_dir}/#{cam}"
-		start_frame = timestamps[cam].search_video_index(segment_obs[0])
-		temp = timestamps[cam].search_video_index(segment_obs[1])
-		next unless temp
-		end_frame = temp -1
-		end_frame = timestamps[cam][-1] unless end_frame # 
-		next if start_frame >= end_frame
-		
-		output_file = "#{cam_output_dir}/#{"%07d"%i}.webm"
-		next if File.exist?(output_file)
-		command = "ffmpeg -ss 1 -i #{cam_file} -vf trim=start_frame=#{start_frame}:end_frame=#{end_frame},setpts=PTS-STARTPTS -an #{output_file}"
-		puts command
-		`#{command}`
-	}
+	if WIN then
+		src_mov = conv2winPath(src_mov)
+		_dest_mov = conv2winPath(_dest_mov)
+	end
+	command = "ffmpeg -y -hwaccel_device #{GPU_DEV} -hwaccel auto  -i \"#{src_mov}\" -vf trim=start_frame=#{start_frame}:end_frame=#{end_frame},setpts=PTS-STARTPTS -c:v libvpx -an \"#{_dest_mov}\""
+	puts command
+	`#{command}`
+	if src_mov == dest_mov then
+		ext_name = File.extname(dest_mov)
+		_dest_mov = File.dirname(dest_mov)+File.basename(dest_mov,ext_name) + "_temp" + ext_name
+		`mv #{_dest_mov} #{dest_mov}`
+	end
 end
 
+
+def binary_trim(segments,s_off_set,src_mov,cam,cam_output_dir,end_frame)
+	return if segments.size == 1
+	mid = (segments.size()/2).to_i
+	dest_mov1 = "#{cam_output_dir}/#{"%07d"%(s_off_set+mid)}.webm"
+	first_frame = @timestamps[cam].search_video_index(segments[0][:observ_frame])
+	mid_frame = @timestamps[cam].search_video_index(segments[mid][:observ_frame])
+	raise "ERROR: segments: [#{segments.join(", ")}]" if first_frame >= end_frame or first_frame >= mid_frame
+
+	puts "binary_trim(#{cam}): [#{first_frame}...#{end_frame}] -> [#{first_frame}...#{mid_frame}] + [#{mid_frame}...#{end_frame}]"
+	trim(mid_frame-first_frame,end_frame-first_frame,src_mov,dest_mov1)
+	dest_mov2 = "#{cam_output_dir}/#{"%07d"%(s_off_set)}.webm"
+	trim(0,mid_frame-1,src_mov,dest_mov2)
+	binary_trim(segments[0...mid],s_off_set,    dest_mov2,cam,cam_output_dir,mid_frame-1)
+	binary_trim(segments[mid..-1],s_off_set+mid,dest_mov1,cam,cam_output_dir,end_frame)
+end
+
+
+CAMERAS.each{|cam|
+	next if cam != "cameraA"
+	cam_file = data_id_dir + "/#{cam}_#{data_id}.mp4"
+	cam_output_dir = "#{output_dir}/#{cam}"
+	binary_trim(segments,0,cam_file,cam,cam_output_dir,@timestamps[cam][-1][:observ_frame])
+}
 
 
 exit 0
