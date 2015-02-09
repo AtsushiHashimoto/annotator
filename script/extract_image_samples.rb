@@ -69,7 +69,25 @@ def unify_spells(label)
 	@synonims[label]
 end
 
+def add_group2file(file,group_name)
+  unless File.exist?(file)
+    fo = File.open(file,'w')
+    fo.puts group_name
+    fo.close
+    return
+  end
+  groups = []
+  File.open(file,'r').each{|line|
+    groups << line.strip unless line.strip.empty?
+  }
+  return if groups.include?(group_name)
 
+  fo = File.open(file,'a')
+  fo.puts group_name
+  fo.close
+  return
+end
+group_file_name = "groups.dat"
 
 Ticket.where(task:'task3',completion:true).each{|t|
 	sample_id = t.blob_id
@@ -79,6 +97,11 @@ Ticket.where(task:'task3',completion:true).each{|t|
 	bufs[0] = unify_spells(bufs[0])
 	dir = "#{OutputDir}/#{bufs.flatten.join('/')}"
 	`mkdir -p #{dir}`
+
+  # サンプルのグループにレシピIDを追加
+  data_id = t.blob_id.split(':')[0]
+  add_group2file(dir+"/"+group_file_name, $1)  if data_id =~ /(\d{4}.+)_S\d+/
+
 	output_base = sample_id.gsub('::','_').gsub(':','_')
 	next if existing_images.include?(output_base)
 
