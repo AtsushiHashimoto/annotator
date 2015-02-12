@@ -6,13 +6,14 @@ require 'parallel'
 require 'optparse'
 opt = OptionParser.new
 
-threads = Parallel.processor_count
-opt.on('t','--threads') {|v| threads = v.to_i }
-raise "ERROR: threads must be more than 0" if threads < 1
+@threads = Parallel.processor_count
+opt.on('-t val','--threads val') {|v| @threads = v.to_i }
+raise "ERROR: threads must be more than 0" if @threads < 1
 
 opt.parse!(ARGV)
 
 WIN = true
+DEBUG = false
 GPU_DEV = 0
 if WIN then
 	def conv2winPath(path)
@@ -48,12 +49,12 @@ if ARGV.size > ARG_NUM then
 	#puts "Parallel Exe. CPU count => #{Parallel.processor_count}"
   ts = {}
   ARGV.each{|arg|
-    t = (threads.to_f / ARGV.size)
+    t = (@threads.to_f / ARGV.size)
     ts[arg] = t>0 ? t : 1
   }
 
-	Parallel.each(ARGV, in_threads: threads){|arg|
-		IO.popen("ruby #{__FILE__} #{arg} -t #{ts{arg}}"){|io|
+	Parallel.each(ARGV, in_threads: @threads){|arg|
+		IO.popen("ruby #{__FILE__} #{arg} -t #{ts[arg]}"){|io|
 			io.each{|line|
 					puts line
 			}
@@ -172,7 +173,12 @@ def trim(start_frame,end_frame, src_mov, dest_mov)
 	command = "ffmpeg -y -hwaccel_device #{GPU_DEV} -hwaccel auto  -i \"#{src_mov}\" -vf trim=start_frame=#{start_frame}:end_frame=#{end_frame},setpts=PTS-STARTPTS -c:v libvpx -an \"#{_dest_mov}\" > /dev/null 2> /dev/null"
 	#puts command
 	puts "TRIM: #{File.basename(src_mov)} => #{File.basename(_dest_mov)} [#{start_frame} to #{end_frame}]"
-	`#{command}`
+	if DEBUG then
+    `touch #{_dest_mov}`
+  else
+    `#{command}`
+  end
+
 	if has_temp_src then
 		ext_name = File.extname(dest_mov)
 		_dest_mov = File.dirname(dest_mov)+ "/" + File.basename(dest_mov,ext_name) + "_temp" + ext_name
@@ -189,21 +195,39 @@ def binary_trim(segments,s_off_set,src_mov,cam,cam_output_dir,end_frame,para)
 	dest_mov1 = "#{cam_output_dir}/#{"%07d"%(s_off_set+mid)}.webm"
 	first_frame = @timestamps[cam].search_video_index(segments[0][:observ_frame])
 	mid_frame = @timestamps[cam].search_video_index(segments[mid][:observ_frame])
-	raise "ERROR: segments: [#{segments.join(", ")}]" if first_frame >= end_frame or first_frame >= mid_frame
+
+  if first_frame > end_frame or first_frame > mid_frame then
+  	raise "ERROR: segments: [#{segments.join(", ")}]"
+  end
+  return if first_frame == end_frame
+
+  do_trim = [(mid_frame-1 > first_frame), (end_frame-1 > mid_frame)]
 
 	puts "Binary Trim(#{cam}): [#{first_frame}...#{end_frame}] -> [#{first_frame}..#{mid_frame-1}] + [#{mid_frame}..#{end_frame-1}]"
-	trim(mid_frame-first_frame,end_frame-first_frame,src_mov,dest_mov1)
+	trim(mid_frame-first_frame,end_frame-first_frame,src_mov,dest_mov1) if do_trim[1]
+
 	dest_mov2 = "#{cam_output_dir}/#{"%07d"%(s_off_set)}.webm"
-	trim(0,mid_frame-first_frame-1,src_mov,dest_mov2)
+  if do_trim[0] then
+  	trim(0,mid_frame-first_frame-1,src_mov,dest_mov2) if do_trim[0]
+  else
+    # フレーム数が0になるなら単純に消去してしまう．
+    `rm -f dest_mov2`
+  end
+
   para = para * 2
-  if para <= threads/CAMERAS.size then
-    Process.fork{
-      binary_trim(segments[0..mid-1],s_off_set    ,dest_mov2,cam,cam_output_dir,mid_frame-1,para)
+
+  if para <= [1,@threads/CAMERAS.size].max then
+    args = []
+    args << [segments[0..mid-1],s_off_set    ,dest_mov2,cam,cam_output_dir,mid_frame,para,do_trim[0]]
+    args << [segments[mid..-1],s_off_set+mid,dest_mov1,cam,cam_output_dir,end_frame,para,do_trim[1]]
+    Parallel.each(args,in_threads:2){|arg|
+      binary_trim(arg[0],arg[1],arg[2],arg[3],arg[4],arg[5],arg[6]) if arg[7]
     }
   else
-    binary_trim(segments[0..mid-1],s_off_set    ,dest_mov2,cam,cam_output_dir,mid_frame-1,para)
+    # 完了の確認がしやすいように後半を先にやる
+    binary_trim(segments[mid..-1],s_off_set+mid,dest_mov1,cam,cam_output_dir,end_frame,para) if do_trim[1]
+    binary_trim(segments[0..mid-1],s_off_set    ,dest_mov2,cam,cam_output_dir,mid_frame,para) if do_trim[0]
   end
-	binary_trim(segments[mid..-1],s_off_set+mid,dest_mov1,cam,cam_output_dir,end_frame,para)
 end
 
 Parallel.each(CAMERAS, in_threads: Parallel.processor_count){|cam|
