@@ -49,7 +49,7 @@ puts conf['task2']['synonims']
 @synonims = {}
 File.open(conf['task2']['synonims'],'r').each{|line|
 	buf = line.split(/\s+/)
-	if buf.size != 3 then
+	if buf.size < 3 then
 		STDERR.puts "ERROR unexpected format in '#{conf['task2']['synonims']}. A line must contain 3 blocks.'"
 		STDERR.puts line
 		exit
