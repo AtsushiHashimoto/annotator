@@ -92,7 +92,11 @@ group_file_name = "groups.dat"
 Ticket.where(task:'task3',completion:true).each{|t|
 	sample_id = t.blob_id
 	mtask3 = MicroTask.where(task:'task3',blob_id:t.blob_id)[0]
-	label = mtask3['label']
+  unless mtask3 then
+    STDERR.puts "WARNING: no micro task for ticket #{t.blob_id}"
+    next
+  end
+	label = mtask3['label'].strip
 	bufs = label.split('::')
 	bufs[0] = unify_spells(bufs[0])
 	dir = "#{OutputDir}/#{bufs.flatten.join('/')}"
