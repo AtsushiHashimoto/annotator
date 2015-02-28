@@ -196,6 +196,8 @@ def binary_trim(segments,s_off_set,src_mov,cam,cam_output_dir,end_frame,para)
 	first_frame = @timestamps[cam].search_video_index(segments[0][:observ_frame])
 	mid_frame = @timestamps[cam].search_video_index(segments[mid][:observ_frame])
 
+  return unless first_frame
+  return unless mid_frame
   if first_frame > end_frame or first_frame > mid_frame then
   	raise "ERROR: segments: [#{segments.join(", ")}]"
   end
