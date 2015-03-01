@@ -53,7 +53,7 @@ def check_completion(task,data_id)
 end
 
 # export to recognition result for action
-EXE_ACTION = "#{THIS_DIR}/export2recog_result4action.rb"
+EXE_ACTION = "ruby #{THIS_DIR}/export2recog_result4action.rb"
 data_ids.each{|data_id|
   next unless check_completion('task4',data_id)
   tar_dir = "#{TAR_DIR}/#{data_id}"
@@ -62,7 +62,7 @@ data_ids.each{|data_id|
   `#{EXE_ACTION} #{data_id} #{tar_file}`
 }
 
-EXE_OBJ_ACCESS = "#{THIS_DIR}/export2recog_result4object_access.rb"
+EXE_OBJ_ACCESS = "ruby #{THIS_DIR}/export2recog_result4object_access.rb"
 data_ids.each{|data_id|
   next unless check_completion('task1',data_id)
   #next unless check_completion('task2',data_id)
