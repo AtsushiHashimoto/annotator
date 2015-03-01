@@ -18,7 +18,7 @@ if ARGV.size < ARG_NUM then
   	exit 1
   end
   ARGV << '2014RC01_S020' if ARGV.size == 0
-  ARGV << "#{THIS_DIR}/test.#{File.basename(__FILE__,'.rb')}.csv"
+  ARGV << "#{THIS_DIR}/test.#{File.basename(__FILE__,'.rb')}.csv" if ARGV.size == 1
 end
 
 
