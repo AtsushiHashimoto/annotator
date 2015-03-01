@@ -15,12 +15,13 @@ ARG_NUM = 2
 
 if ARGV.size < ARG_NUM then
   unless _DEBUG then
-  	STDERR.puts "USAGE: ruby #{__FILE__} data_id output_file"
+  	STDERR.puts "USAGE: ruby #{__FILE__} data_id output_file timestamp_dir"
   	exit 1
   end
   ARGV << '2014RC01_S020' if ARGV.size == 0
   ARGV << "#{THIS_DIR}/test.#{File.basename(__FILE__,'.rb')}.csv" if ARGV.size == 1
 end
+#ARGV << "#{THIS_DIR}/../blob_images/#{ARGV[0]}/" if ARGV.size == 2
 
 
 environment = :development
@@ -42,6 +43,7 @@ require "#{THIS_DIR}/../model_mongoid/microtask.rb"
 
 TargetData = ARGV[0]
 OutputFile = ARGV[1]
+#TimeStampDir = ARGV[2]
 DataPath = "../blob_images/#{TargetData}"
 
 class String
@@ -86,6 +88,20 @@ Ticket.where(task:'task3',completion:true,blob_id:reg_query).each{|t|
   cameras << hash[:camera] unless cameras.include?(hash[:camera])
 }
 
+# timestampがなければサーバからダウンロードする
+KuskDatasetServer = '133.3.251.221'
+User = 'a_hasimoto'
+def _ensure_timestampfile(dir,camera,data_id,dataset)
+  `scp #{User}@#{KuskDatasetServer}:/WWW/data/#{dataset}/#{data_id}/FlyCapCamera/#{camera}_timestamp.csv #{dir}`
+end
+def ensure_timestampfile(file,camera,data_id)
+  return if File.exist?(file)
+  dir = File.dirname(file)
+  _ensure_timestampfile(dir,camera,data_id,'2014RC')
+  return if File.exist?(file)
+  _ensure_timestampfile(dir,camera,data_id,'2014RC_low_quality')
+end
+
 # timestampを読み込む
 def load_timestamp(file)
   buf = CSV.read(file)
@@ -99,6 +115,7 @@ end
 timestamps = {}
 cameras.sort.each { |camera|
   timestamp_file = "#{DataPath}/#{camera}_timestamp.csv"
+  ensure_timestampfile(timestamp_file,camera,TargetData)
   timestamps[camera] = load_timestamp(timestamp_file)
 }
 
