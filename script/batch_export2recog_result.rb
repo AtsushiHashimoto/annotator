@@ -47,8 +47,17 @@ data_ids = Dir.glob("#{SRC_DIR}/*").map{|v|File.basename(v)}.sort
 def check_completion(task,data_id)
   tickets = Ticket.where(task:task,blob_id:/#{data_id}/)
   num_of_tickets = tickets.count
+  if num_of_tickets == 0 then
+    STDERR.puts "#{data_id}/#{task}: no tickets are hit."
+  end
   return false if num_of_tickets == 0
+
   num_of_completion = tickets.where(completion:true).count
+
+  if num_of_completion != num_of_tickets then
+    STDERR.puts "#{data_id}/#{task}: completion = #{num_of_completion} / #{num_of_tickets}"
+  end
+
   return (num_of_tickets == num_of_completion)
 end
 
