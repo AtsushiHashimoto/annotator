@@ -59,7 +59,9 @@ data_ids.each{|data_id|
   tar_dir = "#{TAR_DIR}/#{data_id}"
   `mkdir -p #{tar_dir}`
   tar_file = "#{tar_dir}/motion_tag.csv"
-  `#{EXE_ACTION} #{data_id} #{tar_file}`
+  command = "#{EXE_ACTION} #{data_id} #{tar_file}"
+  puts command
+  `#{command}`
 }
 
 EXE_OBJ_ACCESS = "ruby #{THIS_DIR}/export2recog_result4object_access.rb"
@@ -69,8 +71,10 @@ data_ids.each{|data_id|
   next unless check_completion('task3',data_id)
   tar_dir = "#{TAR_DIR}/#{data_id}"
   `mkdir -p #{tar_dir}`
-  tar_file = "#{tar_dir}/motion_tag.csv"
-  `#{EXE_OBJ_ACCESS} #{data_id} #{tar_file}`
+  tar_file = "#{tar_dir}/object_access.csv"
+  command = "#{EXE_OBJ_ACCESS} #{data_id} #{tar_file}"
+  puts command
+  `#{command}`
 }
 
 exit 0
