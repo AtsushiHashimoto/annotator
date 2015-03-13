@@ -70,7 +70,7 @@ data_ids.each{|data_id|
   tar_file = "#{tar_dir}/motion_tag.csv"
   command = "#{EXE_ACTION} #{data_id} #{tar_file}"
   puts command
-  `#{command}`
+  puts `#{command}`
 }
 
 EXE_OBJ_ACCESS = "ruby #{THIS_DIR}/export2recog_result4object_access.rb"
@@ -83,7 +83,7 @@ data_ids.each{|data_id|
   tar_file = "#{tar_dir}/object_access.csv"
   command = "#{EXE_OBJ_ACCESS} #{data_id} #{tar_file}"
   puts command
-  `#{command}`
+  puts `#{command}`
 }
 
 exit 0
