@@ -77,7 +77,7 @@ module Helpers
 					
 					ticket['start_frame'] = segments[i][:frame]
 					ticket['start_time'] = segments[i][:time]
-          next if i+1 == segment.size
+          next if i+1 == segments.size
           ticket['end_frame'] = segments[i+1][:frame]
 					ticket['end_time'] = segments[i+1][:time]
 					ticket['segment_num'] = segments.size-1
