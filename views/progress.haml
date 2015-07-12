@@ -1,0 +1,26 @@
+%table.col-lg-12.progress_table
+	%tr
+		%th(colspan=2 width="25%") data ID
+		%th task1
+		%th task3
+		%th task4
+	-for id, counts in @ticket_counts
+		%tr
+			%td(rowspan=4)= id
+			%td # of tickets
+			- for task, count in counts
+				%td.number= count[:tickets]
+		%tr
+			%td # of completion
+			- for task,count in counts
+				%td.number= count[:completed]
+		%tr
+			%td rest tickets
+			- for task,count in counts
+				%td.number= count[:tickets] - count[:completed]
+		%tr
+			%td # of passbacks
+			- for task,count in counts
+				%td.number= count[:passbacks]
+		
+#breakable

@@ -40,7 +40,8 @@ class KUSKAnnotator < Sinatra::Base
 	configure do        
 		#Load configure file
 		register Sinatra::ConfigFile
-	end
+  end
+
 	configure :development do
 		register Sinatra::Reloader
 		config_file "#{settings.root}/config_dev.yml"
@@ -78,7 +79,8 @@ class KUSKAnnotator < Sinatra::Base
 		end 
 		
 		haml :"user/sign_up"
-	end 
+  end
+
 
 	#signup action
 	post '/sign_up' do
@@ -99,9 +101,10 @@ class KUSKAnnotator < Sinatra::Base
 		else
 			redirect "/sign_up"
 		end
-	end
+  end
 
-	#共通の処理
+
+#共通の処理
 	before do			
 		@user = User.where(_id: session[:user_id]).first
 		if @user then
@@ -153,9 +156,30 @@ class KUSKAnnotator < Sinatra::Base
 	get '/' do
 		login_check
 		redirect "/task",303
-	end
+  end
 
-	get '/rest' do
+  get '/progress' do
+    login_check
+    @title = "作業進行状況"
+    @ticket_counts = {}
+    data_list = Dir.glob("#{settings.image_blob_path}/20*").map{|v|File.basename(v)}.sort
+    for id in data_list do
+      @ticket_counts[id] = {}
+      for task in ['task1','task3','task4'] do
+        counts = {tickets:{}, completed:{}, incomplete:{}, passbacks:{}}
+        tickets = Ticket::where(task:task,blob_id:/#{id}/)
+        counts[:tickets] = tickets.count
+        counts[:completed] = tickets.where(completion:true).count
+        counts[:passbacks] = Passback::where('ticket.task'=>task,'ticket.blob_id'=>/#{id}/).count
+        @ticket_counts[id][task] = counts
+      end
+    end
+
+    haml :'progress'
+  end
+
+
+  get '/rest' do
 		login_check
 
 		blob = now
