@@ -106,7 +106,21 @@ body{
 		.no-margin{
 			margin: 0 0 0 0;
 		}
-		
+
+        table.progress_table{
+          width: 100%;
+          th{
+            text-align:center;
+          }
+          td,tr,th{
+            border: 1px $base_col2 solid;
+          }
+          td.number{
+            text-align:right;
+          }
+
+        }
+
 	}
 
 	/* その他 */
@@ -190,6 +204,8 @@ body{
 	.task4_current_segment{
 		background-color: $accent_col;
 	}
+
+
 
 }
 
