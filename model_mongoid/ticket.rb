@@ -35,7 +35,7 @@ class Ticket
 	end
 
 	def self.select_ticket(annotator, min_task_num, strategy='semi_random', for_check = false, task_priority={})
-		task_priority = {'task1'=>0.7,'task2'=>0.05,'task3'=>0.90,'task4'=>0.00} if task_priority.empty?
+		task_priority = {'task1'=>0.7,'task2'=>0.05,'task3'=>0.90,'task4'=>0.40} if task_priority.empty?
 
 		max_task_num = min_task_num.values.max
 		# annotatorの人数12人以上だったらタグ付けしない
@@ -53,7 +53,6 @@ class Ticket
 		cands +=  Array.new(20){|i| "2014RC%02d"%(i+1)}
 		#cands = ["2015YR","2014RC"].product(Array.new(20){|i| "%02d"%(i+1)}).map{|v|v.join}
 =end
-
 		tickets = self.where(completion:false)
 		
 		for recipe_id in cands do

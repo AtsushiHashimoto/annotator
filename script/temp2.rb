@@ -35,9 +35,9 @@ get '/' do
 		a = mtask['annotation']
 		next if !a or a.empty?
 		new_annotations = []
-		#STDERR.puts mtask.blob_id
-		#STDERR.puts "==before=="
-		#STDERR.puts a
+		STDERR.puts mtask.blob_id
+		STDERR.puts "==before=="
+		STDERR.puts a
 		flag = true
 		for box in a do
 			box['x'] *= Width

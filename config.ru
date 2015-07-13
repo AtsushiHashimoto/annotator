@@ -8,7 +8,7 @@ class Application < Sinatra::Base
 
 		set :MyCustomError, 10000
 
-		set :port, 4568
+		set :port, 4569
 		#set :raise_errors, false #development環境でエラー処理のテストをする．
 
 

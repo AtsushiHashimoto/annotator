@@ -13,6 +13,8 @@ jQuery(function ($) {
 				mask_image = '/blob_images' + $('#meta-mask_image').attr('value');
 				image_width = parseFloat($('#meta-image_width').attr('value'));
 				image_height = parseFloat($('#meta-image_height').attr('value'));
+				console.log(box.x);
+				console.log(image_width);
 				box.x = Math.round(box.x*image_width);
 				box.width = Math.round(box.width*image_width);
 				box.y = Math.round(box.y*image_height);
@@ -21,7 +23,7 @@ jQuery(function ($) {
 			 
 			 // call back function of drawImage in print_image.
 			 var draw_elems = function(){
-			 console.log(box);
+				console.log(JSON.stringify(box));
 				$('#img').drawRect({
 								 layer:true,
 								 name: 'rect',

@@ -125,7 +125,7 @@ module Helpers
 				# 本当は複数ユーザからの入力に対して正しい答えを判定したい!!
 				# 別関数で統合を促す．(←答えの一致はチェック済み→どれを選んでも一緒)
 				mtask = MicroTask::where(task:'task1',blob_id:seed.blob_id)[0]
-				raise "no mtask has been found." unless mtask
+				raise "no mtask of blob_id: #{seed.blob_id} has been found." unless mtask
 				
 				unless mtask['annotation'] then
 					count_no_annotation = count_no_annotation+1
