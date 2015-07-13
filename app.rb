@@ -163,11 +163,18 @@ class KUSKAnnotator < Sinatra::Base
     @title = "作業進行状況"
     @ticket_counts = {}
     data_list = Dir.glob("#{settings.image_blob_path}/20*").map{|v|File.basename(v)}.sort
+    @tasks = [['task1','cameraA'],['task1','cameraB'],['task1','cameraC'],'task3','task4']
+#    @tasks = ['task1','task2','task4']
     for id in data_list do
       @ticket_counts[id] = {}
-      for task in ['task1','task3','task4'] do
+      for task in @tasks do
         counts = {tickets:{}, completed:{}, incomplete:{}, passbacks:{}}
-        tickets = Ticket::where(task:task,blob_id:/#{id}/)
+        if task.is_a?(Array) then
+          query = {task:task[0],blob_id:/#{id}.*#{task[1]}/}
+        else
+          query = {task:task,blob_id:/#{id}/}
+        end
+        tickets = Ticket::where(query)
         counts[:tickets] = tickets.count
         counts[:completed] = tickets.where(completion:true).count
         counts[:passbacks] = Passback::where('ticket.task'=>task,'ticket.blob_id'=>/#{id}/).count

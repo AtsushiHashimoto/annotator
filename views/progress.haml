@@ -1,26 +1,27 @@
-%table.col-lg-12.progress_table
-	%tr
-		%th(colspan=2 width="25%") data ID
-		%th task1
-		%th task3
-		%th task4
-	-for id, counts in @ticket_counts
-		%tr
-			%td(rowspan=4)= id
-			%td # of tickets
-			- for task, count in counts
-				%td.number= count[:tickets]
-		%tr
-			%td # of completion
-			- for task,count in counts
-				%td.number= count[:completed]
-		%tr
-			%td rest tickets
-			- for task,count in counts
-				%td.number= count[:tickets] - count[:completed]
-		%tr
-			%td # of passbacks
-			- for task,count in counts
-				%td.number= count[:passbacks]
-		
+- for task in @tasks
+	%p
+		%table.col-lg-12.progress_table
+			%caption
+				- if task.is_a?(Array)
+					= task.join(" ")
+				- else
+					= task
+			%tr
+				%th(width="25%") data ID
+				%th # of tickets
+				%th # of completion
+				%th # of rest tickets
+				%th # of passbacks
+			-for id, counts in @ticket_counts
+				%tr
+					%td= id
+					%td.number= counts[task][:tickets]
+					%td.number= counts[task][:completed]
+					%td.number= counts[task][:tickets] - counts[task][:completed]
+					%td.number= counts[task][:passbacks]
+	%br
+	%br
+	%br
+	%br
+	%br
 #breakable
