@@ -26,6 +26,9 @@ task_dependency:
 # random or semi-random or ordered
 ticket_sampling_strategy: ‘ordered’
 
+# 同じ作業を続ける長さ(分:秒)
+chain_duration: '0:15'
+
 
 # 作業完了に必要なmicro_taskの完了数
 minimum_micro_task_num:

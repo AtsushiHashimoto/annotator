@@ -13,6 +13,7 @@ require_relative 'model_mongoid/user'
 require_relative 'model_mongoid/microtask'
 require_relative 'model_mongoid/ticket'
 require_relative 'model_mongoid/passback'
+require_relative 'model_mongoid/ticket_pool'
 
 # lib/Utilsはmodel_mongoidの各ファイルより後ろでrequireする．
 require_relative 'lib/Utils'
@@ -21,10 +22,6 @@ require_relative 'lib/CheckCompletion'
 
 Mongoid.load!("mongoid.yml", :development)
 
-LOGIN_PATH = "/log_in"
-DELETE_FROM_HISTORY = [:_id,:worker,:blob,:task]
-NULL_TIME = Time.new(1981,1,1,0,0,0)
-END_STATE = ['complete','time_up','abort']
 
 class KUSKAnnotator < Sinatra::Base
 	register Helpers::Utils
@@ -40,6 +37,11 @@ class KUSKAnnotator < Sinatra::Base
 	configure do        
 		#Load configure file
 		register Sinatra::ConfigFile
+    LOGIN_PATH = "/log_in"
+    DELETE_FROM_HISTORY = [:_id,:worker,:blob,:task]
+    NULL_TIME = Time.new(1981,1,1,0,0,0)
+    END_STATE = ['complete','time_up','abort']
+
   end
 
 	configure :development do
@@ -158,6 +160,8 @@ class KUSKAnnotator < Sinatra::Base
 		redirect "/task",303
   end
 
+  # ユーティリティURLs
+  # 進行状況の表示
   get '/progress' do
     login_check
     @title = "作業進行状況"
@@ -185,6 +189,13 @@ class KUSKAnnotator < Sinatra::Base
     haml :'progress'
   end
 
+  # チケットプールの更新
+  get '/refresh_ticket_pool/:task' do |task|
+    # ってか，generateのところでやるべき？
+    pools = refresh_ticket_pool(task,settings)
+    return "refreshed!"
+  end
+
 
   get '/rest' do
 		login_check
@@ -209,7 +220,7 @@ class KUSKAnnotator < Sinatra::Base
 		@title = "作業終了"
 		@state = state
 		haml :'contents/end'
-	end
+  end
 
   # タスクの表示
 	get '/task' do
@@ -228,16 +239,56 @@ class KUSKAnnotator < Sinatra::Base
 		if curr_time - session[:start] > time2sec(settings.work_time) then
 			session[:start] = NULL_TIME
 			redirect '/rest', 303			
-		end
-		ticket = Ticket.select_ticket(@user, settings.minimum_micro_task_num, settings.ticket_sampling_strategy)
-		unless ticket then
-			# 一度，生成を試みる
-			ticket = Ticket.select_ticket(@user, settings.minimum_micro_task_num, settings.ticket_sampling_strategy)
-			unless ticket then
-				redirect "/end/#{END_STATE[0]}", 303
-			end
-		end	
+    end
+
+    # タスクの割り振り
+
+    # checkかtaskか
+    ticket = nil
+    chain_duration_sec = time2sec(settings.chain_duration)
+    if session.has_key?(:chain_task) and session[:chain_task] then
+      tp = TicketPool.where(_id:session[:chain_task])
+      if tp.count == 1 then
+        tp = tp[0]
+        if tp.is_active?(@user,chain_duration_sec) then
+          ticket_id = tp.next_task(@user)
+          ticket = Ticket.find(ticket_id) if ticket_id
+        else
+          tp.users.delete(@user)
+          tp.save!
+        end
+      end
+    end
+
+    unless ticket then
+      session[:chain_task] = nil
+      tp, ticket_id = TicketPool.select(@user,chain_duration_sec)
+      unless tp then
+        redirect "/end/#{END_STATE[0]}", 303
+      end
+      session[:chain_task] = tp._id
+      ticket = Ticket.find(ticket_id)
+=begin
+      ticket = Ticket.select_ticket(@user, settings.minimum_micro_task_num, settings.ticket_sampling_strategy)
+		  unless ticket then
+			  # 一度，生成を試みる
+        # 排他制御を入れる?
+			  ticket = Ticket.select_ticket(@user, settings.minimum_micro_task_num, settings.ticket_sampling_strategy)
+			  unless ticket then
+			  	redirect "/end/#{END_STATE[0]}", 303
+			  end
+      end
+=end
+    end
+
+    STDERR.puts "ERROR: failed to save tpool" unless tp.save!
+    STDERR.puts "ERRORRRRRRRRRRRR!!!!!!!!!!!!!\n\n\n\n" if ticket == nil
 		session[:ticket] = ticket
+    puts "#{__FILE__}: #{__LINE__}"
+    puts ticket
+    if tp.pool_type == :check then
+      redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
+    end
 		redirect "/task/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
@@ -247,7 +298,7 @@ class KUSKAnnotator < Sinatra::Base
 		@ticket = @ticket.with_indifferent_access
 		redirect '/task', 303 unless @ticket[:task] == task
 		redirect '/task', 303 unless @ticket[:blob_id] == blob_id
-		
+
 		mtask_id = "#{@user}::#{task}::#{blob_id}"
 		if !session[:current_task] or mtask_id != session[:current_task][:id] then
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
@@ -447,19 +498,46 @@ class KUSKAnnotator < Sinatra::Base
 			
 			unless ticket.save! then
 				raise "failed to update ticket."
-			end
-			redirect "/check/#{task}"			
+      end
+
+      # checkが終わればticket_poolから削除
+      tp = TicketPool.where(_id:session["chain_task"])
+
+      # tp.countが0の場合は，他の人がそのTicketPoolを終わらせたレアケースとなるはず．
+      if tp.count == 1 then
+        tp = tp[0]
+        res = tp.delete(ticket._id)
+        session["chain_task"] = nil if res == :get_empty
+      end
+
+			#redirect "/check/#{task}"
 
 		else
 			# 通常のannotation post
 			mtasks = search_micro_tasks(ticket)
 			min_mtask_num = settings.minimum_micro_task_num[task]
 			if mtasks.size >= min_mtask_num then
-					if check_completion(ticket,mtasks) then
-						ticket.completion = true
-					else
-						Passback.execute(ticket,mtasks)
-					end
+        # completion = trueならticket_poolから削除
+        tp = TicketPool.where(_id:session["chain_task"])
+
+        if check_completion(ticket,mtasks) then
+				  ticket.completion = true
+
+          # tp.countが0の場合は，他の人がそのTicketPoolを終わらせたレアケースとなるはず．
+          if tp.count == 1 then
+            tp = tp[0]
+            res = tp.delete(ticket._id)
+            session[:chain_task] = nil if res == :get_empty
+          end
+
+        else
+				  Passback.execute(ticket,mtasks)
+          if tp.count == 1 then
+            tp = tp[0]
+            res = tp.task2check(ticket._id)
+            session[:chain_task] = nil if res == :get_empty
+          end
+				end
 			end
 		end
 
@@ -497,6 +575,8 @@ class KUSKAnnotator < Sinatra::Base
 	end
 	
 	# 終了かどうか一括でチェック
+  # ticket_poolに対応していないので，廃止!!
+=begin
 	get '/completion_check/:task' do |task|
 		tickets = Ticket.where({:task=>task})
 		min_mtask_num = settings.minimum_micro_task_num[task]
@@ -522,7 +602,8 @@ class KUSKAnnotator < Sinatra::Base
 			
 		end
 		return ids.join("\n")
-	end
+    end
+=end
 	
 	# 一定人数以上のannotatorがいる場合にticketをresetする
 	get '/reset_tickets/:task/:max_annotator' do |task,max_annotator|
@@ -570,7 +651,9 @@ class KUSKAnnotator < Sinatra::Base
 		mtask_id = "#{@user}::#{task}::#{blob_id}"
 		if !session[:current_task] or mtask_id != session[:current_task][:id] then
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
-		end
+    end
+
+    STDERR.puts "ERROR: invalid blob_id: #{blob_id} != #{@ticket['blob_id']}.\n\n\n\n" unless blob_id == @ticket['blob_id']
 		
 		blob_id = @ticket['blob_id']
 		@meta_tags = generate_meta_tags(@ticket)
@@ -582,8 +665,10 @@ class KUSKAnnotator < Sinatra::Base
 		end
 =end
 #		@meta_tags['min_work_time'] = 0
-		
-		passbacks = Passback.where("ticket._id"=>@ticket['_id'])
+		puts "in /check/#{task}/#{blob_id}: ticket = #{@ticket}"
+    puts "#{@ticket['_id']}"
+
+    passbacks = Passback.where("ticket._id"=>@ticket['_id'])
 		@micro_tasks = []
 		for p in passbacks do
 			@micro_tasks += p.micro_tasks
@@ -624,7 +709,6 @@ class KUSKAnnotator < Sinatra::Base
 		for key,val in @meta_tags do
 			STDERR.puts "#{key}: #{val}"
 		end
-
 
 
 		haml :"check/#{task}"

@@ -61,6 +61,7 @@ class Ticket
 				#STDERR.puts "#{recipe_id}: #{task}"
 				tickets = self.where(blob_id:/#{recipe_id}/, task:task,completion:false)
 				task_num = min_task_num[task]
+        puts "min_task_num[#{task}] = #{task_num}"
 				if for_check then
 					tickets = tickets.nor(query_or[0...task_num])
 				else
