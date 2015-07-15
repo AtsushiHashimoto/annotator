@@ -38,6 +38,8 @@
 								%hr
 							%a{:href=>"/task/#{@task}/#{@ticket.blob_id}?checker=true"}
 								%button.btn.btn-warning.breakable_link.goto_task{:type=>"button"} 自分でつけ直す(正解がない)
+							%button.btn.btn-warning.breakable_link.timer-hide.skip{:type=>"button"} スキップ
+
 
 						- else
 							- if @fixed_labels.include?(i)

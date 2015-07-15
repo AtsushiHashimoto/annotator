@@ -34,9 +34,9 @@
 						%input{:type => "hidden", :name => key, :value => mtask[key]}
 					%input{:type => "hidden", :name => "checker", :value => @user}
 			%hr
-					
 		%a{:href=>"/task/#{@task}/#{@ticket.blob_id}?checker=true"}
 			%button.btn.btn-warning.breakable_link.goto_task{:type=>"button"} 自分でつけ直す(正解がない)
+		%button.btn.btn-warning.breakable_link.timer-hide.skip{:type=>"button"} スキップ
 
 
 	.no-padding.col-lg-12
