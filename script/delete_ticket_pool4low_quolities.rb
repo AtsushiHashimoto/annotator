@@ -38,13 +38,14 @@ delete_target = []
 TicketPool.where(task:'task4').each{|t|
   flag = true
   for dt_id in DISABLE_TARGET do
-    next unless t.subtask =~ /#{dt_id}/
+    next unless t.subtask =~ /.*#{dt_id}.*/
     #puts "#{t.subtask} matches to #{dt_id}"
     flag = false
     break
   end
   next if flag # DISABLE_TARGETになければ，何もしないで次へ
-  t.destroy
+  puts "delete #{t.subtask}"
+  t.delete
 }
 
 exit 0

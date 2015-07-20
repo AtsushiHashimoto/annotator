@@ -100,7 +100,7 @@ class TicketPool
     return nil
   end
 
-  def delete(ticket_id)
+  def delete_ticket(ticket_id)
     key = self.tickets.key(ticket_id)
     self.tickets.delete(key)
     return :go_on unless self.tickets.empty?
