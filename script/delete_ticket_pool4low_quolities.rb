@@ -43,7 +43,11 @@ TicketPool.where(task:'task4').each{|t|
     flag = false
     break
   end
-  next if flag # DISABLE_TARGETになければ，何もしないで次へ
+  if flag then
+    puts "keep #{t.subtask}"
+    next # DISABLE_TARGETになければ，何もしないで次へ
+  end
+
   puts "delete #{t.subtask}"
   t.delete
 }
