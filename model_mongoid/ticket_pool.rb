@@ -50,7 +50,7 @@ class TicketPool
       for key in tp[:users].keys do
         # 一定時間経過するまでは，特定のユーザが作業をしているとみなす．
         next if key==user_name
-        next if !tp.is_active(key,chain_duration_sec)
+        next if !tp.is_active?(key,chain_duration_sec)
         active_user_num = active_user_num + 1
       end
       next if active_user_num >= tp.max_user_num
