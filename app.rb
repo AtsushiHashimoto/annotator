@@ -22,6 +22,11 @@ require_relative 'lib/CheckCompletion'
 
 Mongoid.load!("mongoid.yml", :development)
 
+LOGIN_PATH = "/log_in"
+DELETE_FROM_HISTORY = [:_id,:worker,:blob,:task]
+NULL_TIME = Time.new(1981,1,1,0,0,0)
+END_STATE = ['complete','time_up','abort']
+
 
 class KUSKAnnotator < Sinatra::Base
 	register Helpers::Utils
@@ -37,10 +42,6 @@ class KUSKAnnotator < Sinatra::Base
 	configure do        
 		#Load configure file
 		register Sinatra::ConfigFile
-    LOGIN_PATH = "/log_in"
-    DELETE_FROM_HISTORY = [:_id,:worker,:blob,:task]
-    NULL_TIME = Time.new(1981,1,1,0,0,0)
-    END_STATE = ['complete','time_up','abort']
 
   end
 
@@ -506,7 +507,7 @@ class KUSKAnnotator < Sinatra::Base
       # tp.countが0の場合は，他の人がそのTicketPoolを終わらせたレアケースとなるはず．
       if tp.count == 1 then
         tp = tp[0]
-        res = tp.delete(ticket._id)
+        res = tp.delete_ticket(ticket._id)
         session["chain_task"] = nil if res == :get_empty
       end
 
@@ -526,7 +527,7 @@ class KUSKAnnotator < Sinatra::Base
           # tp.countが0の場合は，他の人がそのTicketPoolを終わらせたレアケースとなるはず．
           if tp.count == 1 then
             tp = tp[0]
-            res = tp.delete(ticket._id)
+            res = tp.delete_ticket(ticket._id)
             session[:chain_task] = nil if res == :get_empty
           end
 
