@@ -22,13 +22,16 @@ require_relative 'lib/CheckCompletion'
 
 Mongoid.load!("mongoid.yml", :development)
 
-LOGIN_PATH = "/log_in"
-DELETE_FROM_HISTORY = [:_id,:worker,:blob,:task]
-NULL_TIME = Time.new(1981,1,1,0,0,0)
-END_STATE = ['complete','time_up','abort']
 
 
 class KUSKAnnotator < Sinatra::Base
+  configure do
+    #Load configure file
+    register Sinatra::ConfigFile
+    DELETE_FROM_HISTORY = [:_id,:worker,:blob,:task]
+    NULL_TIME = Time.new(1981,1,1,0,0,0)
+    END_STATE = ['complete','time_up','abort']
+  end
 	register Helpers::Utils
 	register Helpers::TicketGeneration
 	register Helpers::CheckCompletion
@@ -39,11 +42,6 @@ class KUSKAnnotator < Sinatra::Base
 	use Rack::Session::Cookie, :key=>'rack.session',:path=>'/',:secret=>'My session secret'
 	
 	# configureは宣言順に実行される．
-	configure do        
-		#Load configure file
-		register Sinatra::ConfigFile
-
-  end
 
 	configure :development do
 		register Sinatra::Reloader

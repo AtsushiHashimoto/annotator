@@ -1,7 +1,11 @@
 require 'sinatra/base'
 
 $LOAD_PATH.push(File.dirname(__FILE__))
+
+LOGIN_PATH = "/log_in"
+
 require 'app.rb'
+
 
 class Application < Sinatra::Base
     use KUSKAnnotator
