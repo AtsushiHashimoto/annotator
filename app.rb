@@ -49,19 +49,22 @@ class KUSKAnnotator < Sinatra::Base
 	end
 	configure :production do
 		config_file "#{settings.root}/config.yml"
-	end
+  end
 
+  set :tasks,{}
 	configure do
-		settings.image_blob_globpath = "#{settings.image_blob_path}/#{settings.image_blob_globpath}"
-		settings.recipe_blob_globpath = "#{settings.recipe_blob_path}/#{settings.recipe_blob_globpath}"
+    require_relative("my_tasks/my_task.rb")
+    for key,val in settings.my_tasks do
+      next unless key=~/\A(task.+)\Z/
+      require_relative("my_tasks/#{$1.camelize}.rb")
+      settings.tasks[$1] = $1.classify.constantize.new(val)
+    end
 		session = Moped::Session.new([settings.mongodb])
 		session.use "testdb"
 		Mongoid::Threaded.sessions[:default] = session
-				
-		set :checker_list, User.where(checker:true).map{|v| v.name}
-		
+
 		# task2のためにontologyを読み込む
-		set :synonyms, load_synonyms
+		#set :synonyms, load_synonyms
 	end
 
 	get '/scss/:basename' do |basename|
@@ -558,7 +561,7 @@ class KUSKAnnotator < Sinatra::Base
 		return results.join("</br>\n")
 	end
 	get '/ticket/generate/:task' do |task|
-			num = generate_tickets(task)
+			num = settings.tasks[task].generate_tickets
 			return "#{task}: #{num} ticket(s) are newly generated."
 	end
 	

@@ -1,0 +1,86 @@
+# mongodbへの接続情報
+mongodb: 'localhost:27017'
+mongodb_session: 'testdb'
+
+# 基本的な合計作業時間(分:秒) ログイン時に表示される初期終了時刻を決める
+standard_total_work_time: '180:00'
+# 休憩時間(分:秒)
+rest_time: '0:03'
+# 休憩までの作業時間(分:秒)
+work_time: '20:00'
+
+# 上書きするかどうかの質問の回答表示時間
+min_overwrite_time: '0:01'
+
+my_tasks:
+ task1:
+  minimum_micro_task_num: 2
+  min_work_time: '0:05'
+  data_path: '$ANNOTATE_ROOT/blob_images/'
+  glob_pattern: '*/extract/camera?/*/*.png'
+  blob_id_regex: '.*\/blob_images\/(.+)\.png\Z'
+
+  # 画像表示サイズ
+  # 1040 x 776
+  image_width: 416 #520
+  image_height: 310.4 #388
+  modulation: 150
+  min_similarity: 0.8
+
+# task2:
+#  minimum_micro_task_num: 2
+#  min_work_time: '0:05'
+#  data_path: '$ANNOTATE_ROOT/blob_recipes'
+#  glob_pattern: '*'
+#  blob_id_regex: '\A.*\/blob_recipes/(.+)\Z'
+#  recipe_id_regex: '.*(20\d\d..\d\d).*'
+#  # 画像表示サイズ
+#  # 1040 x 776
+#  image_width: 416 #520
+#  image_height: 310.4 #388
+#  synonims: '/Users/ahashimoto/recipesentenceclustering/ontology/synonym.tsv'
+#  overview: 'overview.jpg'
+#
+# task3:
+#  minimum_micro_task_num: 2
+#  min_work_time: '0:05'
+#  # 依存関係にある場合，名前をアルファベット順でソートしたときに依存先が前になるようにtask名をつける
+#  # じゃないとticket生成の時に変になる．
+#  dependency:
+#   - 'task1'
+#   - 'task2'
+#  data_path: '$ANNOTATE_ROOT/blob_images'
+#  glob_pattern: '*/extract/camera?/*/*.png'
+#  # 画像表示サイズ
+#  # 1040 x 776
+#  image_width: 416 #520
+#  image_height: 310.4 #388
+#
+# task4:
+#  minimum_micro_task_num: 2
+#  min_work_time: '0:05'
+#  data_path: '$ANNOTATE_ROOT/blob_images'
+#  glob_pattern: '*/video/camera?/*.webm'
+#  segment_file: 'segments.csv'
+#  # 画像表示サイズ
+#  # 1040 x 776
+#  image_width: 416 #520
+#  image_height: 310.4 #388
+#
+# task_pedes_count:
+#  minimum_micro_task_num: 1
+#  min_work_time: '0:03'
+#  data_path: '/data'
+#  glob_pattern: '*/*/'
+#  # 画像表示サイズ
+#  # 1040 x 776
+#  image_width: 416 #520
+#  image_height: 310.4 #388
+
+
+
+
+
+
+
+
