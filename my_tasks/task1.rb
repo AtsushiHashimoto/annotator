@@ -1,9 +1,9 @@
 class Task1 < MyTask
   def initialize(config={})
     @@config = parse_hash(config)
+    @task = self.class.name.underscore
+    super(@task,@@config)
   end
-
-
 
   def generate_tickets
     puts @@config
@@ -11,7 +11,6 @@ class Task1 < MyTask
     puts @@config[:data_path] + @@config[:glob_pattern]
     all_blobs = Dir.glob(@@config[:data_path] + @@config[:glob_pattern]).sort
     # task1の生成
-    task = self.class.name.underscore
     count = 0
     for blob_path in all_blobs do
       puts blob_path
@@ -34,9 +33,9 @@ class Task1 < MyTask
       end
 
       # 既に登録があれば再生成や上書きはしない
-      _id = "#{task}_#{blob_id}"
+      _id = "#{@task}_#{blob_id}"
       next if Ticket.duplicate?(_id)
-      ticket = Ticket.new(_id: _id, blob_id: blob_id, task: task, blob_path: blob_path, annotator: [])
+      ticket = Ticket.new(_id: _id, blob_id: blob_id, task: @task, blob_path: blob_path, annotator: [])
 
 
       after_image = md[1..-1].join()
@@ -63,5 +62,7 @@ class Task1 < MyTask
     camera_name = File.basename(dir)
     return common_dir + "/BG/" + camera_name + "/bg_" + basename
   end
+
+
 
 end

@@ -197,7 +197,8 @@ class KUSKAnnotator < Sinatra::Base
   # チケットプールの更新
   get '/refresh_ticket_pool/:task' do |task|
     # ってか，generateのところでやるべき？
-    pools = refresh_ticket_pool(task,settings)
+    settings.tasks[task].refresh_ticket_pool
+    #pools = refresh_ticket_pool(task,settings)
     return "refreshed!"
   end
 
