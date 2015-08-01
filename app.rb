@@ -53,12 +53,15 @@ class KUSKAnnotator < Sinatra::Base
 
   set :tasks,{}
 	configure do
+    # settings.tasksに各タスクを処理するクラス(singletonが望ましい)のインスタンスを登録する
     require_relative("my_tasks/my_task.rb")
     for key,val in settings.my_tasks do
       next unless key=~/\A(task.+)\Z/
       require_relative("my_tasks/#{$1.camelize}.rb")
       settings.tasks[$1] = $1.classify.constantize.new(val)
     end
+
+    # mongodへの接続
 		session = Moped::Session.new([settings.mongodb])
 		session.use "testdb"
 		Mongoid::Threaded.sessions[:default] = session
