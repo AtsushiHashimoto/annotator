@@ -82,7 +82,6 @@ body{
 		}
 
 		.left_side{
-			
 			padding-top: $padding-vert;
 			padding-bottom: $padding-vert;
 			padding-left: $padding-side;
@@ -204,6 +203,10 @@ body{
 	.task4_current_segment{
 		background-color: $accent_col;
 	}
+    .focus{
+        background-color: $accent_col;
+    }
+
 
 
 

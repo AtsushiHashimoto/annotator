@@ -1,0 +1,30 @@
+%link(rel="stylesheet" href="/select2/select2.css")
+- @skippable = false
+- frame = @meta_tags[:frame].to_i
+- frame_num = @meta_tags[:frame_num].to_i
+- for i in 0...frame_num
+  -if i == frame
+    - cls = "focus"
+    %ul
+      %li このフレームで初めて線を跨いだ人物全員をそれぞれ矩形で囲ってください．
+  -elsif i == frame.to_i-1
+    - cls = "past task4_prev_segment"
+  -else
+    - cls = "future"
+  .col-lg-12{id:"frame#{i}",class:cls}
+    .col-lg-6{style:"height=#{@meta_tags[:image_height]};"}
+      / ここに特定のframeの画像を表示する
+      %canvas{id:"canvas_#{frame}",width:@meta_tags[:image_width], height:@meta_tags[:image_height]}
+    .col-lg-6
+      %form#annotation_completion{:action => '/annotation', :method => 'post'}
+        性別(矩形に応じて動的に描画):
+        %select.select#gender(name="gender")
+          %option(value="" selected) 選択してください
+          %option(value="male") 男性
+          %option(value="female") 女性
+          %option(value="others") その他
+        = haml :'common_parts/annotation_submit'
+
+
+%script(src="/select2/select2.min.js")
+%script(src="/coffee/task_pedes_count.js")
