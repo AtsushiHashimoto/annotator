@@ -163,12 +163,7 @@ module Helpers
 			end
 			return output_image.sub(settings.image_blob_path,"")
 		end
-		
-		def am_i_checker?
-			true
-			#return settings.checker_list.include?(@user)
-		end
-		
+
 		###############################
 		## MongoDB 操作関連
 		###############################
