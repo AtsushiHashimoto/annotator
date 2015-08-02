@@ -1,11 +1,42 @@
 ANNOTATE_ROOT = File.dirname(File.dirname(__FILE__))
 
 class MyTask
-  def initialize(task_name,config)
-    @name = task_name
-    @config = config
+  attr_reader :config
+  @@util_funcs = {}
+  #########################
+  # 小クラスがOverrideするべき関数
+  def necessary_func(func_name)
+    STDERR.puts "A subclass of MyTask must have #{func_name}."
+  end
+  def generate_tickets
+    necessary_func(__method__)
+  end
+  def generate_tickets
+    necessary_func(__method__)
+  end
+  def generate_meta_tags(ticket,current_task,user)
+    necessary_func(__method__)
   end
 
+  #########################
+  # 初期化 == ここから
+  def initialize(task_name)
+    @name = task_name
+
+  end
+  def self.set_default_config(config)
+    @@default_config = config
+  end
+  def self.set_util_funcs(hash={})
+    for key,val in hash do
+      @@util_funcs[key] = val
+    end
+  end
+  def generate_config(_config)
+    config = @@default_config.deep_dup
+    @config = parse_hash(config.deep_merge(_config))
+    return @config
+  end
   def parse_hash(config)
     for key,val in config do
       next unless val.kind_of?(String)
@@ -14,13 +45,24 @@ class MyTask
     end
     return config.with_indifferent_access
   end
+  # 初期化 == ここまで
+  #########################
 
+
+  #########################
+  # 終了判定 == ここから
   def has_enough_microtasks(ticket,min_tasks)
     #puts "#{min_tasks} <= #{ticket.annotator.size}"
     return true if min_tasks <= ticket.annotator.size
     return false
   end
 
+  # 終了判定 == ここまで
+  #########################
+
+
+  #########################
+  # チケット作成 == ここから
   def refresh_ticket_pool
     puts "refresh_ticket_pool is called"
     hash = Hash.new{|hash,key| hash[key] = {}} # poolの元
@@ -73,4 +115,33 @@ class MyTask
     end
     return pools
   end
+  # チケット作成 = ここまで
+  #########################
+
+  #########################
+  # タスク画面生成 = ここから
+  def self.generate_meta_tags_base(tags,ticket,current_task,user)
+    base_tags = {}
+    base_tags[:_id] = current_task[:id]
+    base_tags[:worker] = user
+    base_tags[:start_time] = current_task[:start_time];
+    return meta_tags unless ticket
+    base_tags[:blob_id] = ticket[:blob_id]
+    for key,val in ticket.as_json do
+      # 既にあるハッシュ要素は上書きしない(_id)など
+      next unless val
+      next if val.respond_to?(:'empty?') and val.empty?
+      next if base_tags.include?(key.to_sym)
+      base_tags[key.to_sym] = val.to_s
+    end
+
+    overwritten_tags = base_tags.keys & tags.keys
+    STDERR.puts "WARNING: task-specific meta tags [#{overwritten_tags.join(", ")}] are overwritten. This will cause an Error."
+    base_tags.deep_merge!(tags)
+  end
+
+  # タスク画面生成 = ここまで
+  #########################
+
+
 end

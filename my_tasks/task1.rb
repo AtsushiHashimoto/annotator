@@ -1,8 +1,8 @@
 class Task1 < MyTask
   def initialize(config={})
-    @@config = parse_hash(config)
     @task = self.class.name.underscore
-    super(@task,@@config)
+    super(@task)
+    @@config = generate_config(config)
   end
 
   def generate_tickets
@@ -55,6 +55,18 @@ class Task1 < MyTask
 
   end
 
+  def generate_meta_tags(ticket,current_task,user)
+    meta_tags = {}
+    puts @@util_funcs
+    meta_tags[:min_work_time] = @@util_funcs[:time2sec].call(@@config[:min_work_time]).to_s
+
+    meta_tags[:image_width] = @@config[:image_width]
+    meta_tags[:image_height] = @@config[:image_height]
+    meta_tags[:diff_image] = generate_diff_image(ticket[:after_image],ticket[:before_image], ticket[:blob_path]);
+    meta_tags[:mask_image] = generate_mask_image(ticket[:blob_path])
+    return MyTask::generate_meta_tags_base(meta_tags,ticket,current_task,user)
+  end
+
   def get_prev_file(path)
     dir = File.dirname(path)
     basename = File.basename(path)
@@ -63,6 +75,35 @@ class Task1 < MyTask
     return common_dir + "/BG/" + camera_name + "/bg_" + basename
   end
 
+# task1の補助関数
+  def generate_diff_image(_image1,_image2, orig_blob_path)
+    image1 = @@config[:data_path] + _image1
+    image2 = @@config[:data_path] + _image2
+    dir = @@config[:data_path] + File.dirname(orig_blob_path).sub('extract','diff')
+    `mkdir -p #{dir}`
+    output_image1 = "#{dir}/#{File.basename(image1)}"
+    unless File.exist?(output_image1) then
+      output_image2 = "#{dir}/image2_#{File.basename(image1)}"
+      `composite -compose difference #{image1} #{image2} #{output_image1}`
+      `composite -compose difference #{image2} #{image1} #{output_image2}`
+      `composite -compose add #{output_image1} #{output_image2} #{output_image1}`
+      `convert #{output_image1} -colorspace Gray -modulate #{@@config[:modulation]} #{output_image1}`
+      `rm #{output_image2}`
+    end
+    return output_image1.sub(@@config[:data_path],"")
+  end
 
+  def generate_mask_image(blob_image)
+    path = @@config[:data_path] + blob_image
+    dir = File.dirname(path).sub('extract','mask')
+    `mkdir -p #{dir}`
+    output_image = "#{dir}/#{File.basename(path)}"
+
+    unless File.exist?(output_image)
+      `convert -type GrayScale -threshold 1 #{path} #{output_image}`
+    end
+
+    return output_image.sub(@@config[:data_path],"")
+  end
 
 end

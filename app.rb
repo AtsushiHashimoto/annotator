@@ -55,11 +55,14 @@ class KUSKAnnotator < Sinatra::Base
 	configure do
     # settings.tasksに各タスクを処理するクラス(singletonが望ましい)のインスタンスを登録する
     require_relative("my_tasks/my_task.rb")
+    MyTask::set_default_config(settings.my_tasks[:default])
+    MyTask::set_util_funcs({time2sec:method(:time2sec),parse_time:method(:parse_time)})
     for key,val in settings.my_tasks do
       next unless key=~/\A(task.+)\Z/
       require_relative("my_tasks/#{$1.camelize}.rb")
       settings.tasks[$1] = $1.classify.constantize.new(val)
     end
+    settings.my_tasks.with_indifferent_access
 
     # mongodへの接続
 		session = Moped::Session.new([settings.mongodb])
@@ -212,7 +215,7 @@ class KUSKAnnotator < Sinatra::Base
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
 
-		@meta_tags = generate_meta_tags_base
+		@meta_tags = MyTask::generate_meta_tags(nil,nil,session[:current_task],@user)
 		@meta_tags[:task] = 'rest'
 		@meta_tags[:blob] = blob
 		@meta_tags[:min_work_time] = time2sec(settings.rest_time).to_s
@@ -263,6 +266,9 @@ class KUSKAnnotator < Sinatra::Base
           tp.users.delete(@user)
           tp.save!
         end
+      else
+        # ticketがないので，次のunless ticketに入る
+        # puts "#{__FILE__} at line #{__LINE__}."
       end
     end
 
@@ -274,17 +280,6 @@ class KUSKAnnotator < Sinatra::Base
       end
       session[:chain_task] = tp._id
       ticket = Ticket.find(ticket_id)
-=begin
-      ticket = Ticket.select_ticket(@user, settings.minimum_micro_task_num, settings.ticket_sampling_strategy)
-		  unless ticket then
-			  # 一度，生成を試みる
-        # 排他制御を入れる?
-			  ticket = Ticket.select_ticket(@user, settings.minimum_micro_task_num, settings.ticket_sampling_strategy)
-			  unless ticket then
-			  	redirect "/end/#{END_STATE[0]}", 303
-			  end
-      end
-=end
     end
 
     STDERR.puts "ERROR: failed to save tpool" unless tp.save!
@@ -309,45 +304,17 @@ class KUSKAnnotator < Sinatra::Base
 		if !session[:current_task] or mtask_id != session[:current_task][:id] then
 			session[:current_task] = {:id=>mtask_id,:start_time=>now}
 		end
-		
-		
-		@meta_tags = generate_meta_tags_base(@ticket)
-		
-		if params.include?('checker') and am_i_checker? then
-			STDERR.puts "===========CHECKER: #{params['checker']}"
-			@meta_tags[:checker] = @user
-			@meta_tags[:min_work_time] = 3
-		end
 
-		case task
-			when 'task1'
-				@meta_tags[:image_width] = settings.image_width
-				@meta_tags[:image_height] = settings.image_height
-				@meta_tags[:diff_image] = generate_diff_image(@ticket[:after_image],@ticket[:before_image], @ticket[:blob_path]);
-				@meta_tags[:mask_image] = generate_mask_image(@ticket[:blob_path])
-			when 'task2'
-				@synonyms = settings.synonyms
-				@candidates = @ticket[:candidates].with_indifferent_access
-				@meta_tags[:list_ingredient] = @synonyms[:ingredient].to_json
-				@meta_tags[:list_utensil   ] = @synonyms[:utensil   ].to_json
-				@meta_tags[:list_seasoning ] = @synonyms[:seasoning ].to_json
-				@meta_tags[:overview] = @ticket[:blob_path] + "/" + settings.task2[:overview]
-			when 'task3'
-				@meta_tags[:image_width] = settings.image_width
-				@meta_tags[:image_height] = settings.image_height
-				@meta_tags[:candidates] = @ticket['candidates'].to_json
-				@meta_tags[:box] = @ticket['box'].to_json
-				@meta_tags[:mask_image] = generate_mask_image(@ticket[:blob_path])
-			when 'task4'
-				@meta_tags[:blob_path] = File.dirname(@ticket['blob_path'])
-				@meta_tags[:current_segment] = @ticket['blob_id'].split(':')[-1].to_i
-				@local_blob_image_path = settings.image_blob_path
-				@verbs = settings.synonyms[:verb]
-				blob_id_common_part = @meta_tags[:blob_id].split(':')[0...-1].join(':')
-				@past_labels = MicroTask.where(worker:@user,task:task,blob_id:/#{blob_id_common_part}:.+/).to_a.map{|v|[v['blob_id'].split(':')[-1].to_i,  v['label']]}
-				@past_labels = Hash[*@past_labels.flatten]
-		end
-		
+    @task = settings.tasks[task]
+    @meta_tags = @task.generate_meta_tags(@ticket,session[:current_task],@user)
+
+		if params.include?('checker') then
+			#STDERR.puts "===========CHECKER: #{params['checker']}"
+			@meta_tags[:checker] = @user
+			@meta_tags[:min_work_time] = settings.checker_work_time
+    end
+
+
 		@title = "#{task.upcase} for #{blob_id}"
 		
 		# 新しいタスクに対するhamlファイルをここに書く
@@ -478,7 +445,7 @@ class KUSKAnnotator < Sinatra::Base
 		end
 		
 		
-		if params.include?('checker') and am_i_checker? then
+		if params.include?('checker') then
 			# checkerによるannotation post
 			# /check/:task からのpost→他のmtaskをpassback送りにして，今回の物だけ登録し，ticket=trueとする
 			temp = search_micro_tasks(ticket)
@@ -566,15 +533,22 @@ class KUSKAnnotator < Sinatra::Base
 	end
 	
 	# dataへのアクセス
+  # 本来はCoffeeScriptを使って書くべき．
 	get '/blob_images/*' do
-		path = settings.image_blob_path + "/" +  params[:splat].join("/")
+		path = settings.tasks['task1'].config[:data_path] + "/" +  params[:splat].join("/")
 		send_file path	
 	end
 	
 	get '/blob_recipes/*' do
-		path = settings.recipe_blob_path + "/" +  params[:splat].join("/")
-		send_file path	
-	end
+    path = settings.tasks['task2'].config[:data_path] + "/" +  params[:splat].join("/")
+		send_file path
+  end
+
+  # CoffeeScriptを使った場合に生成されるデータパス
+  get '/data_path/:task/*' do |task|
+    path = settings.tasks[task].config[:data_path] + "/" +  params[:splat].join("/")
+    send_file path
+  end
 	
 	# 終了かどうか一括でチェック
   # ticket_poolに対応していないので，廃止!!
@@ -635,8 +609,7 @@ class KUSKAnnotator < Sinatra::Base
 	# タグ付け結果確認用のパス
 	get '/check/:task' do |task|
 		login_check
-		return 404 unless am_i_checker?
-		
+
 		ticket = Ticket.select_ticket(@user,settings.minimum_micro_task_num,settings.ticket_sampling_strategy,true,{task=>1.0})
 		session[:ticket] = ticket
 		return "No more tickets that shoud be checked" unless ticket
@@ -645,7 +618,6 @@ class KUSKAnnotator < Sinatra::Base
 
 	get '/check/:task/:blob_id' do |task,blob_id|		
 		login_check
-		return 404 unless am_i_checker?
 		@ticket = session[:ticket]
 		@title = "CHECK #{task} for #{blob_id}"
 		#return target.ticket['_id']
@@ -658,14 +630,9 @@ class KUSKAnnotator < Sinatra::Base
     STDERR.puts "ERROR: invalid blob_id: #{blob_id} != #{@ticket['blob_id']}.\n\n\n\n" unless blob_id == @ticket['blob_id']
 		
 		blob_id = @ticket['blob_id']
-		@meta_tags = generate_meta_tags(@ticket)
+    @task = settings.my_tasks[task]
+		@meta_tags = @task.generate_meta_tags(@ticket,session[:current_task],@user)
 
-=begin
-		if task != ticket[:task] or blob_id != ticket[:blob_id]
-			# URLとキャッシュが合わない⇢ブラウザの戻るボタン⇢待ち時間を減らす
-			meta_tags[:min_work_time] = "1"
-		end
-=end
 #		@meta_tags['min_work_time'] = 0
 		puts "in /check/#{task}/#{blob_id}: ticket = #{@ticket}"
     puts "#{@ticket['_id']}"

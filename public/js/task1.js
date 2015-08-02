@@ -12,10 +12,10 @@ jQuery(function ($) {
 			 
 			 
 			 var load_meta_data = function(){
-				img_src_before = '/blob_images' + $('#meta-before_image').attr('value');
-				img_src_after = '/blob_images' + $('#meta-after_image').attr('value');
-				diff_image_path = '/blob_images' + $('#meta-diff_image').attr('value');
-				mask_image_path = '/blob_images' + $('#meta-mask_image').attr('value');
+				img_src_before = '/blob_images/' + $('#meta-before_image').attr('value');
+				img_src_after = '/blob_images/' + $('#meta-after_image').attr('value');
+				diff_image_path = '/blob_images/' + $('#meta-diff_image').attr('value');
+				mask_image_path = '/blob_images/' + $('#meta-mask_image').attr('value');
 				image_width = $('#meta-image_width').attr('value');
 				image_height = $('#meta-image_height').attr('value');
 				var is_put = $('#meta-put').attr('value')
