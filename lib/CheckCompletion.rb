@@ -76,11 +76,14 @@ module Helpers
 			for mtask in mtasks do
 				raise "invalid argment" unless task == mtask.task
 				raise "invalid argment" unless blob_id == mtask.blob_id
-			end
+      end
+
+      task_package = settings.tasks[task]
 			
-			min_mtask_num = settings.minimum_micro_task_num[task]
-			return false if mtasks.size < min_mtask_num
-			
+			min_mtask_num = task_package.config[:minimum_micro_task_num]
+      return false if mtasks.size < min_mtask_num
+
+
 			case task
 				when 'task1' then
 				result = check_completion_task1(ticket,mtasks)
@@ -90,9 +93,8 @@ module Helpers
 				result = check_completion_task3(ticket,mtasks)
 				when 'task4' then
 				result = check_completion_task4(ticket,mtasks)
-				else
-				#未実装
-				raise "Unknown task"
+        else
+          result = settings.tasks[task].check_completion(ticket,mtasks)
 			end
 
 			if !result and ticket.completion then
