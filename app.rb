@@ -312,10 +312,6 @@ class KUSKAnnotator < Sinatra::Base
 		
 		
 		@meta_tags = generate_meta_tags_base(@ticket)
-		if task != @ticket[:task] or blob_id != @ticket[:blob_id]
-			# URLとキャッシュが合わない⇢ブラウザの戻るボタン⇢待ち時間を減らす
-			@meta_tags[:min_work_time] = "1"
-		end
 		
 		if params.include?('checker') and am_i_checker? then
 			STDERR.puts "===========CHECKER: #{params['checker']}"
