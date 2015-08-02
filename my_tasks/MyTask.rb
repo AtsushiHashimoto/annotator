@@ -19,6 +19,15 @@ class MyTask
   end
 
   #########################
+  # viewディレクトリ内のパス
+  def view_path_task
+    return "contents/#{@name}"
+  end
+  def view_path_check
+    return "check/#{@name}"
+  end
+
+  #########################
   # 初期化 == ここから
   def initialize(task_name)
     @name = task_name
@@ -125,7 +134,7 @@ class MyTask
     base_tags[:_id] = current_task[:id]
     base_tags[:worker] = user
     base_tags[:start_time] = current_task[:start_time];
-    return meta_tags unless ticket
+    return base_tags unless ticket
     base_tags[:blob_id] = ticket[:blob_id]
     for key,val in ticket.as_json do
       # 既にあるハッシュ要素は上書きしない(_id)など

@@ -2,20 +2,20 @@ jQuery(function ($) {
 			 var point1 = {};
 			 var point2 = {};
 			 var rects = [];
-			 var diff_image_path;
-			 var mask_image_path;
-			 var img_src_before;
-			 var img_src_after;
+			 var diff_image_path = new Image();
+			 var mask_image_path = new Image();
+			 var img_src_before = new Image();
+			 var img_src_after = new Image();
 			 var image_width;
 			 var image_height;
 
 			 
 			 
 			 var load_meta_data = function(){
-				img_src_before = '/blob_images/' + $('#meta-before_image').attr('value');
-				img_src_after = '/blob_images/' + $('#meta-after_image').attr('value');
-				diff_image_path = '/blob_images/' + $('#meta-diff_image').attr('value');
-				mask_image_path = '/blob_images/' + $('#meta-mask_image').attr('value');
+                img_src_before.src = '/data_path/task1/' + $('#meta-before_image').attr('value');
+				img_src_after.src = '/data_path/task1/' + $('#meta-after_image').attr('value');
+				diff_image_path.src = '/data_path/task1/' + $('#meta-diff_image').attr('value');
+				mask_image_path.src= '/data_path/task1/' + $('#meta-mask_image').attr('value');
 				image_width = $('#meta-image_width').attr('value');
 				image_height = $('#meta-image_height').attr('value');
 				var is_put = $('#meta-put').attr('value')
@@ -105,7 +105,7 @@ jQuery(function ($) {
 				};
 
 			  var initCanvas = function(id,img_path){
-				 $(id).clearCanvas();
+                 $(id).clearCanvas();
 				 $(id).drawImage({
 												 layer: true,
 												 index:0,
@@ -142,7 +142,7 @@ jQuery(function ($) {
 													width:image_width,
 													height:image_height,
 													fromCenter: false,
-													compositing:'darker',
+													compositing:'darken',
 													visible: false
 																					 });});
 			 

@@ -66,7 +66,8 @@ class TicketPool
   end
 
   def is_active?(user_name,chain_duration_sec)
-    return Time.new <= self.users[user_name][:start_time] + chain_duration_sec
+    return false if self.users.empty?
+    return Time.now <= self.users[user_name][:start_time] + chain_duration_sec
   end
 
   def assign(user_name)

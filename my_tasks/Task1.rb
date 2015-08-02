@@ -6,9 +6,7 @@ class Task1 < MyTask
   end
 
   def generate_tickets
-    puts @@config
-
-    puts @@config[:data_path] + @@config[:glob_pattern]
+    #puts @@config[:data_path] + @@config[:glob_pattern]
     all_blobs = Dir.glob(@@config[:data_path] + @@config[:glob_pattern]).sort
     # task1の生成
     count = 0
@@ -67,6 +65,29 @@ class Task1 < MyTask
     return MyTask::generate_meta_tags_base(meta_tags,ticket,current_task,user)
   end
 
+  def parse_annotation(hash)
+    annotation = {}
+    unless hash[:annotation].empty? then
+      # 空でなければtask1 の結果をパースして保存
+      if hash[:annotation] == 'null' then
+        array = []
+      else
+        array =  JSON.parse(hash[:annotation]).uniq
+      end
+      #画像のサイズで正規化しておく．
+      for i in 0...array.length do
+        array[i] = array[i].with_indifferent_access
+        array[i][:x] = array[i][:x].to_f / @@config[:image_width]
+        array[i][:width] = array[i][:width].to_f / @@config[:image_width]
+        array[i][:y] = array[i][:y].to_f / @@config[:image_height]
+        array[i][:height] = array[i][:height].to_f / @@config[:image_height]
+      end
+      annotation[:annotation] = array
+    end
+    return annotation
+  end
+
+  # task1の補助関数
   def get_prev_file(path)
     dir = File.dirname(path)
     basename = File.basename(path)
@@ -74,8 +95,6 @@ class Task1 < MyTask
     camera_name = File.basename(dir)
     return common_dir + "/BG/" + camera_name + "/bg_" + basename
   end
-
-# task1の補助関数
   def generate_diff_image(_image1,_image2, orig_blob_path)
     image1 = @@config[:data_path] + _image1
     image2 = @@config[:data_path] + _image2
@@ -92,7 +111,6 @@ class Task1 < MyTask
     end
     return output_image1.sub(@@config[:data_path],"")
   end
-
   def generate_mask_image(blob_image)
     path = @@config[:data_path] + blob_image
     dir = File.dirname(path).sub('extract','mask')
