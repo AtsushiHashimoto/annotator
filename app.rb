@@ -296,7 +296,7 @@ class KUSKAnnotator < Sinatra::Base
 		redirect "/task/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
-	get '/task/:task/:blob_id' do |task,blob_id|
+	get '/task/:task/*' do |task,blob_id|
 		@ticket = session[:ticket].as_json
 		redirect '/task', 303 unless @ticket
 		@ticket = @ticket.with_indifferent_access
@@ -546,7 +546,7 @@ class KUSKAnnotator < Sinatra::Base
 		redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
-	get '/check/:task/:blob_id' do |task,blob_id|
+	get '/check/:task/*' do |task,blob_id|
 		login_check
 		@ticket = session[:ticket]
 		@title = "CHECK #{task} for #{blob_id}"
