@@ -100,6 +100,9 @@ class Task4 < MyTask
     return MyTask::generate_meta_tags_base(meta_tags,ticket,current_task,user)
   end
 
+  def refresh_ticket_pools
+    # 未実装
+  end
   def parse_annotation(hash)
     return {label:hash[:label]}
   end
