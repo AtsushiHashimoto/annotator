@@ -4,9 +4,14 @@ require 'sinatra/reloader'
 require 'sinatra/config_file'
 require 'json'
 require 'active_support/all'
+require 'base64' # for task_pedes_count
+
+# templates
+
 require 'sass'
 require 'haml'
-
+$LOAD_PATH.push('/Users/ahashimoto/.rbenv/versions/2.1.2/lib/ruby/gems/2.1.0/gems/coffee-script-2.4.1/lib/')
+require 'coffee-script'
 
 $LOAD_PATH.push(File.dirname(__FILE__))
 require_relative 'model_mongoid/user'
@@ -39,8 +44,8 @@ class KUSKAnnotator < Sinatra::Base
 	use Rack::MethodOverride
 #	enable :sessions
 #	set :session_secret, "My session secret"
-	use Rack::Session::Cookie, :key=>'rack.session',:path=>'/',:secret=>'My session secret'
-	
+  use Rack::Session::Cookie, :key=>'rack.session',:path=>'/',:secret=>'My session secret'
+	#use Rack::Session::Pool
 	# configureは宣言順に実行される．
 
 	configure :development do
@@ -76,9 +81,15 @@ class KUSKAnnotator < Sinatra::Base
 		#set :synonyms, load_synonyms
 	end
 
+  # スタイルシートのscssによる生成
 	get '/scss/:basename' do |basename|
 		scss :"scss/#{basename}"
-	end
+  end
+
+  # java scriptのcoffee scriptからの生成
+  get '/coffee/:java_file' do |java_file|
+    coffee :"coffee/#{java_file}"
+  end
 
 	# ユーザ管理
 	# signup form
@@ -202,7 +213,7 @@ class KUSKAnnotator < Sinatra::Base
 
   # チケットプールの更新
   get '/refresh_ticket_pool/:task' do |task|
-    # ってか，generateのところでやるべき？
+    TicketPool.where({task:task}).each{|tp| tp.destroy}
     settings.tasks[task].refresh_ticket_pool
     #pools = refresh_ticket_pool(task,settings)
     return "refreshed!"
@@ -318,7 +329,7 @@ class KUSKAnnotator < Sinatra::Base
     end
 
 
-		@title = "#{task.upcase} for #{blob_id}"
+		@title = "#{task.camelize} for #{blob_id}"
 		
 		# 新しいタスクに対するhamlファイルをここに書く
 		#haml :"contents/#{task}"
@@ -355,7 +366,8 @@ class KUSKAnnotator < Sinatra::Base
 				for key,val in params do
 					session[:temp_inputs][key] = val
 					STDERR.puts "#{key} : #{val}"
-				end
+        end
+        puts sessions[:temp_inputs]
 				redirect '/overwrite', 303
 			else
 			# /overwriteからのpost
@@ -383,6 +395,7 @@ class KUSKAnnotator < Sinatra::Base
 
     task = settings.tasks[task_name]
     annotation = task.parse_annotation(params)
+    raise 500, "タグが不正である可能性があります．" if annotation==nil
     raise 500, "#{task_name}実装上のエラー: アノテーション記録用Hashのキーにシステムの予約語が使われています" unless annotation.keys & mtask.fields.keys
     for key,val in annotation do
       mtask[key] = val
@@ -412,7 +425,7 @@ class KUSKAnnotator < Sinatra::Base
 						mtask[:label] = params[:label]
 				end
 			else
-				STDERR.puts "ERROR: unknown task '#{params[:task]}' is posted."
+				#STDERR.puts "ERROR: unknown task '#{params[:task]}' is posted."
 		end
 				
 		if MicroTask.where(:_id=>mtask._id).count == 0 then
@@ -526,7 +539,6 @@ class KUSKAnnotator < Sinatra::Base
     send_file path
   end
 
-	
 	# debug用のパス
 	get '/test' do
 		ticket = Ticket.where(task:"task2")[0]

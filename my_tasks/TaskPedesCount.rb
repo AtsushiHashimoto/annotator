@@ -43,6 +43,19 @@ blob_images
 　　　　　…
 　　　　┗567890.png
 =end
+  def get_cam_id(blob_id)
+    puts blob_id
+    md = blob_id.match(@@config[:cam_id_regex])
+    return nil unless md
+    puts md[1]
+    md[1]
+  end
+  def get_data_id(blob_id)
+    md = blob_id.match(@@config[:data_id_regex])
+    return nil unless md
+    data_id = md[1]
+  end
+
   def generate_tickets
     all_data = Dir.glob(@@config[:data_path] + @@config[:glob_pattern]).delete_if{|v|
       !v.match(@@config[:data_id_regex])
@@ -51,10 +64,6 @@ blob_images
     count = 0
 
     for data_path in all_data do
-      md = data_path.match(@@config[:data_id_regex])
-      next unless md
-      data_id = md[1]
-
       timestamps = load_timestamps("#{data_path}/#{@@config[:timestamp_file]}")
       blob_paths = Dir.glob("#{data_path}/**/*#{@@config[:image_extension]}").map{|v|v.gsub!(@@config[:data_path],'')}
 
@@ -65,7 +74,6 @@ blob_images
 
       i = 0
       for blob_path in blob_paths do
-
         md = blob_path.match(@@config[:blob_id_regex])
         unless md then
           STDERR.puts "ERROR: invalid format image '#{blob_path}' (matching pattern: /#{@@config[:blob_id_regex]}/)"
@@ -80,7 +88,6 @@ blob_images
 
         blob_path.gsub(@@config[:data_path],'')
         ticket = Ticket.new(_id: _id, blob_id: blob_id, task: @task, blob_path: blob_path, annotator:[])
-        ticket['data_id'] = data_id
         ticket['timestamp'] = timestamps[i]
         ticket['frame'] = i
         ticket['frame_num'] = timestamps.size
@@ -102,45 +109,135 @@ blob_images
     meta_tags[:image_width] = @@config[:image_width]
     meta_tags[:image_height] = @@config[:image_height]
 
-    # 他の画像のタグを記録する
-    meta_tags[:past_pedestrians] = {}
-    tickets = Ticket.where(task:@task,blob_id:/#{ticket[:data_id]}.+/,completion:true)
-    other_mtasks = MicroTask.where(task:@task,blob_id:/#{ticket[:data_id]}.+/)
+    data_id = get_data_id(ticket[:blob_id])
+    meta_tags[:data_id] = data_id
+    cam_id = get_cam_id(ticket[:blob_id])
+    meta_tags[:cam_id] = cam_id
+
+    meta_tags[:line_imagepath] = "/data_path/#{@task}/#{cam_id}/#{@@config[:line_file]}"
+    meta_tags[:src_imagepath] = "/data_path/#{@task}/#{ticket[:blob_path]}"
+    tickets = Ticket.where(task:@task,blob_id:/#{data_id}.+/,completion:true)
+    other_mtasks = MicroTask.where(task:@task,blob_id:/#{data_id}.+/)
+=begin
     tickets.each{|t|
       completed_mtasks = other_mtasks.where(blob_id:t.blob_id)
-      STDERR.puts "ERROR: empty completed_mtasks for blob_id:#{t.blob_id}"
+      if completed_mtasks.count == 0 then
+        STDERR.puts "ERROR: empty completed_mtasks for blob_id:#{t.blob_id}"
+        next
+      end
+
       completed_mtask = completed_mtasks[0]
       next if completed_mtask['pedestrians'].empty?
-      meta_tags[:past_pedestrians][t['blob_id']] = completed_mtask['pedestrians']
     }
+=end
     return MyTask::generate_meta_tags_base(meta_tags,ticket,current_task,user)
   end
 
+  def get_canvas_imagepath(blob_id)
+    canvas_dir = "#{@@config[:data_path]}/canvas/#{get_data_id("/#{blob_id}")}"
+    return "#{canvas_dir}/#{File.basename(blob_id,@@config[:image_extension])}.png"
+  end
+
+  # annotationにデータを入れて返す
   def parse_annotation(hash)
-    annotation = {}
-    return annotation unless hash[:pedestrians] and !hash[:pedestrians].empty?
+    annotation = {pedestrians:[]}
+    return annotation if !hash.include?('rect') or hash[:rect].size < 1
 
-    #画像のサイズで正規化しておく．
-    array =  JSON.parse(hash[:pedestrians]).uniq
-    for i in 0...array.length do
-      array[i] = array[i].with_indifferent_access
-      array[i][:x] = array[i][:x].to_f / @@config[:image_width]
-      array[i][:width] = array[i][:width].to_f / @@config[:image_width]
-      array[i][:y] = array[i][:y].to_f / @@config[:image_height]
-      array[i][:height] = array[i][:height].to_f / @@config[:image_height]
-      array[i][:gender]
-      # 他にも属性があれば，ここに追加
+    for i in 0...hash[:rect].size do
+      annotation[:pedestrians] << {
+          gender:hash[:gender][i],
+          direction:hash[:direction][i],
+          rect:JSON.parse(hash[:rect][i])
+      }
+      return nil if hash[:direction][i] == "not set"
     end
-    annotation[:pedestrians] = array
 
+    canvas_imagepath = get_canvas_imagepath(hash[:blob_id])
+    command = "mkdir -p #{File.dirname(canvas_imagepath)}"
+    `#{command}`
+    File.open(canvas_imagepath,"w").write(Base64.decode64(hash[:canvas_data]))
+
+    annotation[:canvas_imagepath] = "/data_path/#{@task}"+canvas_imagepath.gsub(@@config[:data_path],'')
     return annotation
   end
 
+  def refresh_ticket_pool
+    hash = Hash.new{|hash,key| hash[key] = {}} # poolの元
+
+    tickets = Ticket.where(task:@task,completion:false)
+    pools = []
+    return pools if tickets.count() == 0
+
+    puts tickets.count()
+    for t in tickets do
+      key = get_data_id(t.blob_path)
+      value = File.basename(t.blob_path)
+      hash[key][value] = t
+      puts "#{key}.#{value} = #{t._id}"
+    end
+
+    # key毎にvalueでsortしてpoolにする
+    for key, val in hash do
+      subtask = key.gsub(@task,"").gsub("/",":")
+
+      puts "task: #{@task} subtask: #{subtask}"
+      min_tasks = @config[:minimum_micro_task_num]
+
+      # checkタスクと分ける
+      #        puts "#{min_tasks} #{task} #{subtask}"
+      pool = TicketPool.generate(:task,min_tasks,@task,subtask)
+      pool_check = TicketPool.generate(:check,1,@task,subtask)
+      #        puts "Users: #{pool.users}"
+      #        puts "Users(check): #{pool_check.users}"
+
+      for index, t in val.sort do
+        if has_enough_microtasks(t,min_tasks) then
+          #puts "check"
+          #pool_check.tickets[index] = t._id
+          STDERR.puts "#{@task} is not designed for double-check."
+        else
+          puts "task"
+          pool.tickets[index] = t._id
+        end
+      end
+
+      # ticketsの数が多かったら分割! (未実装)
+
+      unless pool.tickets.empty? then
+        STDERR.puts "failed to save a new pool." unless pool.save!
+        pools << pool
+      end
+      unless pool_check.tickets.empty? then
+        STDERR.puts "failed to save a new pool_check." unless pool_check.save!
+        pools << pool_check
+      end
+    end
+    return pools
+  end
 
   def check_completion(ticket,mtasks)
     STDERR.puts "WARNING: This task is not designed to double-check the annotation."
     true
   end
 
+  def get_frame_info(data_id,frame)
+    ticket = Ticket.where(task:@task,blob_id:/#{data_id}/)#.*#{frame}#{@@config[:image_extension]}/)#.sort[frame.to_i]
+    mtasks = MicroTask.where(task:@task,blob_id:ticket[frame]['blob_id'])
 
+    image_path = "/data_path/#{@task}/#{ticket[frame]['blob_path']}"
+
+    if mtasks.size < 1 then
+      pedestrians = nil
+    else
+      mtask = mtasks[0]
+      image_path = mtask['canvas_imagepath'] unless mtask['pedestrians'].empty?
+      pedestrians = mtask['pedestrians']
+    end
+
+    return image_path, pedestrians
+  end
+
+  def print_annotation(annotation)
+
+  end
 end

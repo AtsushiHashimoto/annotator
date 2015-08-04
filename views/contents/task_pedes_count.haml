@@ -5,26 +5,55 @@
 - for i in 0...frame_num
   -if i == frame
     - cls = "focus"
-    %ul
-      %li このフレームで初めて線を跨いだ人物全員をそれぞれ矩形で囲ってください．
   -elsif i == frame.to_i-1
     - cls = "past task4_prev_segment"
   -else
     - cls = "future"
   .col-lg-12{id:"frame#{i}",class:cls}
-    .col-lg-6{style:"height=#{@meta_tags[:image_height]};"}
-      / ここに特定のframeの画像を表示する
-      %canvas{id:"canvas_#{frame}",width:@meta_tags[:image_width], height:@meta_tags[:image_height]}
-    .col-lg-6
+    -if i==frame
       %form#annotation_completion{:action => '/annotation', :method => 'post'}
-        性別(矩形に応じて動的に描画):
-        %select.select#gender(name="gender")
-          %option(value="" selected) 選択してください
-          %option(value="male") 男性
-          %option(value="female") 女性
-          %option(value="others") その他
-        = haml :'common_parts/annotation_submit'
+        %ul
+          %li このフレームで初めて線を跨いだ人物全員をそれぞれ矩形で囲ってください．
+          %li 女性は左クリック，男性は右クリックで囲う
+        .col-lg-5{style:"height=#{@meta_tags[:image_height]};"}
+          / ここに特定のframeの画像を表示する
+          %canvas{id:"canvas_current",width:@meta_tags[:image_width], height:@meta_tags[:image_height]}
+        .col-lg-6
+          #annotation_form
+        .col-lg-1
+          %input#post_canvas(type='hidden' name='canvas_data' value='')
+          = haml :'common_parts/annotation_submit'
+    -else
+      - img_path,pedestrians = @task.get_frame_info(@meta_tags[:data_id],i)
+      .col-lg-5{style:"height=#{@meta_tags[:image_height]};"}
+        / 後に，この画像をクリックしたら，そこまでjumpするものを実装する．
+        %img{src:img_path,height:@meta_tags[:image_height]}
+      .col-lg-7
+        -if (pedestrians != nil)
+          -if pedestrians.size > 0
+            %textarea(readonly cols=70 rows=13 style="width:'90%' height:#{@meta_tags[:image_height]-10};")
+              - for pedes in pedestrians
+                = "---&#13;"
+                - for key,val in pedes
+                  = " #{key}: #{val}&#13;"
+          -else
+            = "誰もカウントされませんでした．"
+        -else
+          = "タグ付けがまだです."
+  %hr
 
+#attributes_template.hidden
+  %fieldset
+    %label.pedes_label 通行人ラベル
+    = "移動方向:"
+    %select.select.direction(name="direction[]")
+      %option(value="not set" selected) 選択してください
+      %option(value="forward")  矢印通りの方向
+      %option(value="backward") 矢印と逆方向
 
+    = "性別:"
+    %input.gender(name="gender[]" type='text' value='not set' readonly style='width:50px;')
+    %textarea.rect(name="rect[]" type='textarea' value='not set' readonly rows=2 style='width:100%;')
 %script(src="/select2/select2.min.js")
+%script(src="/js/jcanvas.min.js")
 %script(src="/coffee/task_pedes_count.js")

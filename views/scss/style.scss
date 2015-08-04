@@ -206,7 +206,14 @@ body{
     .focus{
         background-color: $accent_col;
     }
-
+    hr {
+      height: 0px;
+      border: solid;
+      border-width: 1px;
+      color: $base_col2;
+      margin-top: 0px;
+      margin-bottom: 0px;
+    }
 
 
 
