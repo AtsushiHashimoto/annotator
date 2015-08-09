@@ -25,7 +25,7 @@ class TaskPedesCount < MyTask
 
   def parse_timestamp(str)
     # 2014.09.09_10.00.21.341.jpg
-    md = str.match(/\d{4}\.\d{2}\.\d{2}_\d{2}\.\d{2}\.\d{2}\.\d{3}.*/)
+    md = str.match(/(\d{4})\.(\d{2})\.(\d{2})_(\d{2})\.(\d{2})\.(\d{2})\.(\d{3}).*/)
     unless md then
       STDERR.puts "#{str} does not matched to the pattern."
     end
