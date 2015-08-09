@@ -8,18 +8,24 @@ class TaskPedesCount < MyTask
     return "ERROR: This task (#{@task}) is not designed to double-check."#contents/#{@name}"
   end
 
-  def load_timestamps(file)
+  def load_timestamps(data_dir)
+    timestamp_files = Dir.glob("#{data_dir}/#{@@config[:timestamp_files]}").sort
+
     timestamps = []
-    File.open(file).each{|line|
-      line = line.strip
-      next if line.empty?
-      timestamps << parse_timestamp(line)
-    }
+    for file in timestamp_files do
+      File.open(file).each{|line|
+        line = line.strip
+        next if line.empty?
+        timestamps << parse_timestamp(line)
+      }
+    end
     return timestamps
   end
+
   def parse_timestamp(str)
-    STDERR.puts "WARNING: function 'parse_timestamp' is not implemented!"
-    Time.now
+    # 2014.09.09_10.00.21.341.jpg
+    STDERR.puts "WARNING: invalid timestamp format '#{str}'" unless str =~ /\d{4}\.\d{2}\.\d{2}_\d{2}\.\d{2}\.\d{2}\.\d{3}.*/
+    return Time.local($1,$2,$3,$4,$5,$6,$7.to_i*1000)
   end
 
   # data_pathディレクトリ以下の構造
@@ -64,7 +70,7 @@ blob_images
     count = 0
 
     for data_path in all_data do
-      timestamps = load_timestamps("#{data_path}/#{@@config[:timestamp_file]}")
+      timestamps = load_timestamps(data_path)
       blob_paths = Dir.glob("#{data_path}/**/*#{@@config[:image_extension]}").map{|v|v.gsub!(@@config[:data_path],'')}
 
       if timestamps.size != blob_paths.size then
@@ -143,6 +149,13 @@ blob_images
     annotation = {pedestrians:[]}
     return annotation if !hash.include?('rect') or hash[:rect].size < 1
 
+    puts hash[:rect]
+    if hash[:rect].class == String then
+      # overwrite時にはsessionに格納されることで(?)何故かarrayが文字列になる
+      hash[:gender] = JSON.parse(hash[:gender])
+      hash[:direction] = JSON.parse(hash[:direction])
+      hash[:rect] = JSON.parse(hash[:rect])
+    end
     for i in 0...hash[:rect].size do
       annotation[:pedestrians] << {
           gender:hash[:gender][i],
@@ -153,13 +166,44 @@ blob_images
     end
 
     canvas_imagepath = get_canvas_imagepath(hash[:blob_id])
-    command = "mkdir -p #{File.dirname(canvas_imagepath)}"
-    `#{command}`
-    File.open(canvas_imagepath,"w").write(Base64.decode64(hash[:canvas_data]))
-
     annotation[:canvas_imagepath] = "/data_path/#{@task}"+canvas_imagepath.gsub(@@config[:data_path],'')
+
+    if hash.include?('canvas_data') then
+      command = "mkdir -p #{File.dirname(canvas_imagepath)}"
+      `#{command}`
+      File.open(canvas_imagepath,"w").write(Base64.decode64(hash[:canvas_data]))
+    else
+      STERR.puts "neither canvas_data nor canvas_imagepath are found." unless hash.include?('canvas_imagepath')
+      command = "mv #{hash[:canvas_imagepath]} #{annotation[:canvas_imagepath]}"
+      `#{command}`
+    end
+
+    if hash.include?('jump') then
+      if(my_id>hash[:jump]) then
+        # 指定のフレーム（自分より前）だけタグを付け直す
+      else
+        # 自分のframe_idの次からjumpの前までの，タグ付けがまだなものを，人無し，とする．
+      end
+    end
+
     return annotation
   end
+
+  def get_temp_imagepath(blob_id,user_name)
+    temp_dir = "#{@@config[:data_path]}/temp/#{user_name}/#{get_data_id("/#{blob_id}")}"
+    return "#{temp_dir}/#{File.basename(blob_id,@@config[:image_extension])}.png"
+  end
+
+  def overwrite_hook(hash,user_name)
+    return hash unless hash.include?('canvas_data')
+    temp_imagepath = get_temp_imagepath(hash[:blob_id],user_name)
+    `mkdir -p #{File.dirname(temp_imagepath)}`
+    File.open(temp_imagepath,"w").write(Base64.decode64(hash[:canvas_data]))
+    hash.delete('canvas_data')
+    hash[:canvas_imagepath] = temp_imagepath
+    return hash
+  end
+
 
   def refresh_ticket_pool
     hash = Hash.new{|hash,key| hash[key] = {}} # poolの元
@@ -237,7 +281,9 @@ blob_images
     return image_path, pedestrians
   end
 
-  def print_annotation(annotation)
-
+  def rendering_frame(params={frame_id:0,data_id:""})
+    params[:config] = @@config
+    return "contents/task_pedes_count_rendering_frame"
   end
+
 end
