@@ -12,6 +12,7 @@ class TaskPedesCount < MyTask
     timestamp_files = Dir.glob("#{data_dir}/#{@@config[:timestamp_files]}").sort
 
     timestamps = []
+    puts timestamp_files
     for file in timestamp_files do
       File.open(file).each{|line|
         line = line.strip
@@ -24,6 +25,7 @@ class TaskPedesCount < MyTask
 
   def parse_timestamp(str)
     # 2014.09.09_10.00.21.341.jpg
+    puts str
     STDERR.puts "WARNING: invalid timestamp format '#{str}'" unless str =~ /\d{4}\.\d{2}\.\d{2}_\d{2}\.\d{2}\.\d{2}\.\d{3}.*/
     return Time.local($1,$2,$3,$4,$5,$6,$7.to_i*1000)
   end
