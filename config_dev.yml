@@ -44,7 +44,11 @@ my_tasks:
   glob_pattern: '/*'
   blob_id_regex: '\A/(.+)\Z'
   recipe_id_regex: '.*(20\d\d..\d\d).*'
+<<<<<<< HEAD
   synonym_file: '/home/ACTIVEDIRECTORY/a_hasimoto/annotator/ontology/synonym.tsv'
+=======
+  synonym_file: '$ANNOTATE_ROOT/../recipesentenceclustering/ontology/synonym.tsv'
+>>>>>>> a457db786e69631df56c9cb302a776a24d10273c
   overview: 'overview.jpg'
 
 # task3:
