@@ -2,7 +2,7 @@
 - @skippable = false
 - frame = @meta_tags[:frame].to_i
 - frame_num = @meta_tags[:frame_num].to_i
-- for i in 0...frame_num
+- for i in [frame-@meta_tags[:pre_frame_num].to_i,0].max...[frame+@meta_tags[:post_frame_num].to_i,frame_num].min
   -if i == frame
     - cls = "focus"
   -elsif i == frame.to_i-1

@@ -77,6 +77,7 @@ blob_images
       timestamps = load_timestamps(data_path)
       blob_paths = Dir.glob("#{data_path}/**/*#{@@config[:image_extension]}").map{|v|v.gsub!(@@config[:data_path],'')}
 
+
       if timestamps.size != blob_paths.size then
         STDERR.puts "ERROR: number of frames and timestamps are not equal."
         next
@@ -126,6 +127,8 @@ blob_images
 
     meta_tags[:line_imagepath] = "/data_path/#{@task}/#{cam_id}/#{@@config[:line_file]}"
     meta_tags[:src_imagepath] = "/data_path/#{@task}/#{ticket[:blob_path]}"
+    meta_tags[:pre_frame_num] = @@config[:pre_frame_num]
+    meta_tags[:post_frame_num] = @@config[:post_frame_num]
     tickets = Ticket.where(task:@task,blob_id:/#{data_id}.+/,completion:true)
     other_mtasks = MicroTask.where(task:@task,blob_id:/#{data_id}.+/)
 =begin
