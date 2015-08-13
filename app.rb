@@ -297,7 +297,7 @@ class KUSKAnnotator < Sinatra::Base
 
     STDERR.puts "ERROR: failed to save tpool" unless tp.save!
     STDERR.puts "ERRORRRRRRRRRRRR!!!!!!!!!!!!!\n\n\n\n" if ticket == nil
-		session[:ticket] = ticket
+		session[:ticket] = ticket['_id']
     puts "#{__FILE__}: #{__LINE__}"
     puts ticket
     if tp.pool_type == :check then
@@ -307,7 +307,7 @@ class KUSKAnnotator < Sinatra::Base
 	end
 
 	get '/task/:task/*' do |task,blob_id|
-		@ticket = session[:ticket].as_json
+		@ticket = Ticket.where(_id:session[:ticket])[0].as_json
 		redirect '/task', 303 unless @ticket
 		@ticket = @ticket.with_indifferent_access
 		redirect '/task', 303 unless @ticket[:task] == task
@@ -566,14 +566,14 @@ class KUSKAnnotator < Sinatra::Base
 		login_check
 
 		ticket = Ticket.select_ticket(@user,settings.minimum_micro_task_num,settings.ticket_sampling_strategy,true,{task=>1.0})
-		session[:ticket] = ticket
+		session[:ticket] = ticket['_id']
 		return "No more tickets that shoud be checked" unless ticket
 		redirect "/check/#{ticket.task}/#{ticket.blob_id}", 303
 	end
 
 	get '/check/:task/*' do |task,blob_id|
 		login_check
-		@ticket = session[:ticket]
+		@ticket = Ticket.where(_id:session[:ticket])[0]
 		@title = "CHECK #{task} for #{blob_id}"
 		#return target.ticket['_id']
 		
