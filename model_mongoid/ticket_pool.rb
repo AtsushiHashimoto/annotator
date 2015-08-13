@@ -67,6 +67,7 @@ class TicketPool
 
   def is_active?(user_name,chain_duration_sec)
     return false if self.users.empty?
+    return false unless self.users.include?(user_name)
     return Time.now <= self.users[user_name][:start_time] + chain_duration_sec
   end
 
@@ -111,10 +112,14 @@ class TicketPool
     return :get_empty
   end
 
+  def self.ticket_id2key(ticket_id)
+    extname = File.extname(ticket_id)
+    return "#{File.dirname(ticket_id)}/#{File.basename(ticket_id,extname)}"
+  end
 
   # :taskから消去して:checkへ移動→ソートしなおし．
   def task2check(ticket_id)
-    key = self.tickets.index(ticket_id)
+    self.tickets.index(ticket_id)
     self.tickets.delete(key)
 
     puts "ERROR: check pool called function 'task2check'." if self.pool_type == :check
@@ -139,7 +144,7 @@ class TicketPool
     end
 
 
-    STDERR.puts "ERROR: failed to save ticket pool." unless tp.save!
+    STDERR.puts "ERROR: failed to update ticket pool." unless tp.update!
 
     return :go_on unless self.tickets.empty?
 

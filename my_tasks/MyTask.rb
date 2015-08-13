@@ -72,6 +72,11 @@ class MyTask
 
   #########################
   # チケット作成 == ここから
+  def self.ticket_id2key(ticket_id)
+    extname = File.extname(ticket_id)
+    return "#{File.dirname(ticket_id)}/#{File.basename(ticket_id,extname)}"
+  end
+
   def refresh_ticket_pool
     puts "refresh_ticket_pool is called"
     hash = Hash.new{|hash,key| hash[key] = {}} # poolの元
@@ -83,7 +88,10 @@ class MyTask
     puts tickets.count()
     for t in tickets do
       key = File.dirname(t.blob_path)
-      value = File.basename(t.blob_path)
+      # blob_pathに"."が入っているとmongodbでkeyとして受け付けてくれない．
+      ## (検索時に深い位置をkeyで指定するために"."を使うための仕様)
+      # このため，pathから拡張子は外す．
+      value = MyTask.ticket_id2key(File.basename(t.blob_path))
       hash[key][value] = t
     end
 

@@ -45,7 +45,6 @@ class KUSKAnnotator < Sinatra::Base
 #	enable :sessions
 #	set :session_secret, "My session secret"
   use Rack::Session::Cookie, :key=>'rack.session',:path=>'/',:secret=>'My session secret'
-	#use Rack::Session::Pool
 	# configureは宣言順に実行される．
 
 	configure :development do
@@ -342,6 +341,8 @@ class KUSKAnnotator < Sinatra::Base
 	get '/overwrite' do
 		@title = "データ再登録の確認画面"
 		@meta_tags[:min_work_time] = time2sec(settings.min_overwrite_time).to_s
+
+
 		@new_inputs = session[:temp_inputs]
 		haml :'contents/overwrite'
 	end
@@ -357,17 +358,26 @@ class KUSKAnnotator < Sinatra::Base
 		mtask = MicroTask.new(_id: params[:_id], worker: params[:worker], time_range: [parse_time(params[:start_time]),curr_time],min_work_time: params[:min_work_time],task: params[:task])
 		mtask.blob_id = params[:blob_id] #if params.include?(:blob_id)
 
+    task_name = params[:task]
 
     # 既に登録済みのマイクロタスクかどうかの確認
 		prev_task = MicroTask.duplicate?(params[:_id])
-		if prev_task and !params.include?("checker") then
+
+    puts "#{__LINE__}: #{params.keys}"
+    if prev_task and !(params.include?("checker")) then
 			if nil == params[:overwrite] then
-				session[:temp_inputs] = {}
-				for key,val in params do
+        # COOKIEに入りきらないデータがある場合のための処理
+        # よく考えたらparamsをqueryとして送ってしまえばCOOKIEに置く必要はない
+        # 今後，改修することがあれば．
+        task = settings.tasks[task_name]
+        hash = task.overwrite_hook(params.deep_dup,@user) if task.respond_to?(:overwrite_hook)
+
+
+        session[:temp_inputs] = {}
+				for key,val in hash do
 					session[:temp_inputs][key] = val
 					STDERR.puts "#{key} : #{val}"
         end
-        puts sessions[:temp_inputs]
 				redirect '/overwrite', 303
 			else
 			# /overwriteからのpost
@@ -385,7 +395,7 @@ class KUSKAnnotator < Sinatra::Base
 			end
 		end
 
-    task_name = params[:task]
+
     if task_name == 'rest' then
       # 現在のマイクロタスクを終了したことを明示
       session[:start] = Time.new
@@ -393,7 +403,10 @@ class KUSKAnnotator < Sinatra::Base
       redirect '/task', 303 if task_name=='rest'
     end
 
+
     task = settings.tasks[task_name]
+    puts "#{__LINE__}: #{params.keys}"
+
     annotation = task.parse_annotation(params)
     raise 500, "タグが不正である可能性があります．" if annotation==nil
     raise 500, "#{task_name}実装上のエラー: アノテーション記録用Hashのキーにシステムの予約語が使われています" unless annotation.keys & mtask.fields.keys
@@ -602,4 +615,13 @@ class KUSKAnnotator < Sinatra::Base
 		haml :"help/#{task}", :layout=>:layout_help
 	end
 =end
+
+  # MyTaskクラスの独自関数を呼び出すパス
+  get '/call/:task/:func' do |task,func|
+    path = send(settings.tasks[task].send(func.to_sym,params))
+    @params[:task_name] = task
+    @params = params.with_indifferent_access
+    @params[:task] = settings.tasks[task]
+    haml path.to_sym
+  end
 end
