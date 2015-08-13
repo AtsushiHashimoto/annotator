@@ -86,6 +86,7 @@ blob_images
       for blob_path in blob_paths do
         md = blob_path.match(@@config[:blob_id_regex])
         unless md then
+          next if blob_path=~/.*temp.*/
           STDERR.puts "ERROR: invalid blob '#{blob_path}' (matching pattern: /#{@@config[:blob_id_regex]}/)"
           next
         end
@@ -93,15 +94,19 @@ blob_images
 
         # 既に登録があれば再生成や上書きはしない
         _id = "#{@task}_#{blob_id}"
-        next if Ticket.duplicate?(_id)
+        if Ticket.duplicate?(_id) then
+          frame = Ticket.where(_id:_id)[0]['frame_end']
+          next
+        end
         count = count + 1
 
         # frameの登録
         local_path = "#{@@config[:data_path]}/#{blob_path}/*#{@@config[:image_extension]}"
         files = Dir.glob(local_path)
-
-        raise 500 if files.empty?
-
+        if files.empty? then
+          STDERR.puts "no files are in the directory '#{local_path}'. check it!"
+          raise 500
+        end
         blob_path.gsub(@@config[:data_path],'')
         ticket = Ticket.new(_id: _id, blob_id: blob_id, task: @task, blob_path: blob_path, annotator:[])
 
@@ -128,6 +133,8 @@ blob_images
       end
       if timestamps.size != frame then
         STDERR.puts "FATAL_ERROR: number of frames and timestamps are not equal."
+        STDERR.puts "timestamps.size = #{timestamps.size}"
+        STDERR.puts "frame: #{frame}"
         raise 500
       end
     end
