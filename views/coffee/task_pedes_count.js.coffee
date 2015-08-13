@@ -5,13 +5,21 @@ do ($=jQuery) ->
   # 矩形描画用のフィールド
   point1 = {}
   point2 = {}
-  rects = []
 
   for meta in metas
     key = meta.getAttribute("name")
     val = meta.getAttribute("value")
     #console.log("#{key}: #{val}")
     params[key] = val
+  params["img_path"] = JSON.parse(params["img_path"])
+  params['frame_begin'] = Number(params['frame_begin'])
+  params['frame_end'] = Number(params['frame_end'])
+  params['image_width'] = parseFloat(params['image_width'])
+  params['image_height'] = parseFloat(params['image_height'])
+  rects = new Array(params['frame_end']-params['frame_begin'])
+  for i in [0...params['frame_end']-params['frame_begin']]
+    rects[i] =[]
+
 
   DrawRect = (id,rect,layer_index,color,stroke_width) ->
     $(id).drawRect({
@@ -50,15 +58,16 @@ do ($=jQuery) ->
 
 
   DrawCanvas = (id, image_filepath,line_filepath)->
+    console.log("DrawCanvas")
+    console.log($(id))
+    console.log(image_filepath)
+    console.log(line_filepath)
     image = new Image()
-    image.src = params["src_imagepath"]
+    image.src = image_filepath
     line = new Image()
-    line.src = params["line_imagepath"]
+    line.src = line_filepath
 
-    #console.log($(id))
-    #console.log(params["blob_path"])
-    #console.log(params["line_imagepath"])
-
+    console.log($(id).attr('class'))
     $(id).clearCanvas()
     $(id).drawImage({
       layer: true,
@@ -100,7 +109,7 @@ do ($=jQuery) ->
     }).drawLayers()
     $(id).setLayer('float',{visible: false}).drawLayers()
 
-  DrawFixedRect = (id,point1,point2,color) ->
+  DrawFixedRect = (id,point1,point2,color,frame,pedes_id) ->
     #console.log("DrawFixedRect")
     left = Math.min(point1.x, point2.x)
     top = Math.min(point1.y, point2.y)
@@ -122,43 +131,91 @@ do ($=jQuery) ->
       fromCenter: false,
       index: 5,
       layer:true,
-      text: "通行人[#{rects.length+1}]"  # 文字文言
+      text: "通行人[#{pedes_id+1}]"
+      # 文字文言
     })
     return rect
 
-  Regist = (rect,is_left)->
+  Unregist = (obj, frame) ->
+    pedes_id = Number($(obj).attr('data-pedes_id'))
+    console.log("Unregist[#{frame}][#{pedes_id}]")
+    local_rects = rects[frame-params['frame_begin']]
+    local_rects.splice(pedes_id,1)
+    id = "#annotation-#{frame}-#{pedes_id}"
+    $(id).remove()
+
+    #削除されたものより後ろの要素の整合性を取る
+    for i in [pedes_id..local_rects.length]
+      id = "annotation-#{frame}-#{i+1}" # 一つ削除されているから+1
+      new_id = "annotation-#{frame}-#{i}"
+      $('#'+id).attr('id',new_id)
+      $('#'+new_id).find(".pedes_label").text("通行人[#{i+1}]")
+      delete_button = $('#'+new_id).find(".delete")
+      delete_button.attr('data-pedes_id',i)
+      console.log("result of iteration: #{i}")
+      console.log($('#'+id).length)
+      console.log($('#'+id))
+      console.log($('#'+new_id))
+
+    # レイヤーの削除
+    canvas = $("#canvas_current_#{frame}")
+    for i in [0...local_rects.length+1]
+      canvas.removeLayer(5)
+      canvas.removeLayer(4)
+      canvas.removeLayer(3)
+      canvas.drawLayers()
+    # 再描画
+    for i in [0...local_rects.length]
+      id = "#annotation-#{frame}-#{i}"
+      color = assign_color($(id).find('.gender').attr('value'))
+      point1 = {x: local_rects[i].x*params['image_width'], y: local_rects[i].y*params['image_height']}
+      point2 = {x: point1.x+local_rects[i].width*params['image_width'], y: point1.y + local_rects[i].height*params['image_height']}
+      DrawFixedRect(canvas,point1,point2,color,frame,i)
+
+  Regist = (rect,is_left,frame)->
     # rectを正規化
     rect.x /= params['image_width']
     rect.y /= params['image_height']
     rect.width /= params['image_width']
     rect.height /= params['image_height']
     # id,point1,point2を変数に保存する．
-    rects.push(rect)
+    local_index = frame - params['frame_begin']
+
+    rect_index = rects[local_index].length
+    console.log(rect_index)
+    rects[local_index].push(rect)
     # formの更新をする
     fieldset = $('#attributes_template fieldset').clone(true)
-    id = "annotation-#{rects.length}"
+    id = "annotation-#{frame}-#{rect_index}"
     $(fieldset).attr('id',id)
-    $(fieldset).find(".pedes_label").text("通行人[#{rects.length}]")
+    $(fieldset).find(".frame").attr('value',frame)
+    $(fieldset).find(".pedes_label").text("通行人[#{rects[local_index].length}]")
 
     gender = assign_gender(is_left)
     $(fieldset).find(".gender").attr('value',gender)
 
     rect_str = JSON.stringify(rect)
     $(fieldset).find(".rect").text(rect_str)
-    $('#annotation_form').append(fieldset)
-    canvasData = $('#canvas_current')[0].toDataURL()
-    canvasData = canvasData.replace(/^data:image\/png;base64,/, '')
-    $('#post_canvas').attr('value',canvasData)
+    $(fieldset).find(".delete").attr("data-pedes_id",rect_index)
+    delete_button = $(fieldset).find(".delete")
+    delete_button.click ->
+      Unregist(this,frame)
 
-  assign_color = (is_left) ->
-    color = '#0000ff'            # 男性は青
-    color = '#ff0000' if is_left # 女性は赤
+    $("#annotation_form_#{frame}").append(fieldset)
+
+    canvasData = $("#canvas_current_#{frame}")[0].toDataURL()
+    canvasData = canvasData.replace(/^data:image\/png;base64,/, '')
+    $("#post_canvas_#{frame}").attr('value',canvasData)
+
+  assign_color = (gender) ->
+    color = '#0000ff'                     # 男性は青
+    color = '#ff0000' if gender=='female' # 女性は赤
     return color
   assign_gender = (is_left) ->
     return 'female' if is_left
     return 'male'
 
-  makeCanvasClickable = (id) ->
+  makeCanvasClickable = (id,frame) ->
     #console.log(id)
     $(id).on('contextmenu', (-> return false))
     $(id).mousedown (evt) ->
@@ -168,7 +225,7 @@ do ($=jQuery) ->
       point1 = {x: x, y: y}
       $(this).attr('drawing','true')
       point2 = {x: x, y: y}
-      color = assign_color(evt.which==1)
+      color = assign_color(assign_gender(evt.which==1))
       DrawFloatRect(id,point1,point2,color)
 
 
@@ -177,10 +234,12 @@ do ($=jQuery) ->
       x = evt.pageX - rect.left
       y = evt.pageY - rect.top
       point2 = {x: x, y: y}
-      color = assign_color(evt.which==1)
-      rect = DrawFixedRect(id,point1,point2,color)
-      Regist(rect,evt.which==1)
+      color = assign_color(assign_gender(evt.which==1))
       $(this).attr('drawing','false')
+      if point1.x == x or point2.x == y
+        return
+      rect = DrawFixedRect(id,point1,point2,color,frame,rects[frame-params['frame_begin']].length)
+      Regist(rect,evt.which==1,frame)
 
     $(id).mousemove (evt) ->
       if 'true' != ($(this).attr('drawing'))
@@ -189,28 +248,41 @@ do ($=jQuery) ->
       x = evt.pageX - rect.left
       y = evt.pageY - rect.top
       point2 = {x: x, y: y}
-      color = assign_color(evt.which==1)
+      color = assign_color(assign_gender(evt.which==1))
       DrawFloatRect(id,point1,point2,color)
 
-  DrawCanvas('#canvas_current', params['blob_path'], params['line_filepath'])
-  makeCanvasClickable('#canvas_current')
+  offset = Number(params['frame_begin'])
+  for i in [0..(Number(params['frame_end'])-offset-1)]
+    console.log(i)
+    DrawCanvas("#canvas_current_#{i+offset}", "#{params['imagepath_header']}/#{params['img_path'][i]}", params['line_imagepath'])
+    makeCanvasClickable("#canvas_current_#{i+offset}",(i+offset))
+  prev_segment = $(".prev_segment")
+  if prev_segment.length > 0
+    $('html, body').animate({scrollTop: prev_segment.offset().top}, 0)
+    $('html, body').animate({scrollTop: $(".focus").offset().top-50}, 1000)
+  jQuery("#annotation_completion").validationEngine();
 
-  AnnotationCheck = ->
-    console.log('annotation_completion submit')
-    return false
-    $("#annotation_completion .direction").each (i,elem) =>
-      if $(elem).attr('value') == "not set"
-        console.log($(elem).attr('value'))
-        alert("移動方向が入力されていないものがあります")
-        return false
-    return false
+  # 作る!!
+  Jump2task = (id) ->
+    # form (id=annotation_complete)の内容を/annotationにポストする
+    # これに加えて，以下のパラメタを追加する
+    # <input type="hidden" name="jump" value="#{id}">
 
-  $('.go_to_next').click = ->
+  #AnnotationCheck = ->
+  #  console.log('annotation_completion submit')
+  #  return false
+  #  $("#annotation_completion .direction").each (i,elem) =>
+  #    if $(elem).attr('value') == "not set"
+  #      console.log($(elem).attr('value'))
+  #      alert("移動方向が入力されていないものがあります")
+  #      return false
+  #  return false
 
-  $('#annotation_completion').submit = ->
-    alert("hoge")
-    return false
-    AnnotationCheck
+
+  #$('#annotation_completion').submit = ->
+  #  alert("hoge")
+  #  AnnotationCheck
+  #  return false
 
   0
   #$('.reset_canvas').click ->

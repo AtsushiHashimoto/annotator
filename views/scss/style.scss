@@ -214,6 +214,19 @@ body{
       margin-top: 0px;
       margin-bottom: 0px;
     }
+    .left{
+      text-align: left;
+    }
+    .right{
+      text-align: right;
+    }
+    .float-left{
+      float:left;
+    }
+    .underline{
+      border-bottom: solid 1px $accent_col2;
+    }
+
 
 
 

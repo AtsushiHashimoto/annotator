@@ -1,0 +1,13 @@
+$base_col: #858EFF;
+$base_col2: #3F48B2;
+$no_color: #000000;
+$accent_col: #FFE585;
+$accent_col2: #B29939;
+$text_col_light: #ffffff;
+$defocus: #aaaaaa;
+
+div.task_pedes_count.past,
+div.task_pedes_count.future{
+  background-color: $defocus;
+}
+
