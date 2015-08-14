@@ -5,10 +5,13 @@
 - frame_begin = @meta_tags[:frame_begin].to_i
 - frame_end = @meta_tags[:frame_end].to_i
 - frame_num = @meta_tags[:frame_num].to_i
-%form#annotation_completion{:action => '/annotation', :method => 'post'}
+%form#annotation_completion.position-relative{:action => '/annotation', :method => 'post'}
   %input(name="frame_num" type="hidden" value="#{frame_end-frame_begin}")
   %input(name="timestamps" type="hidden" value="#{@meta_tags[:timestamp]}")
   %input(name="frame_begin" type="hidden" value="#{frame_begin}")
+  .col-lg-9.fixed_menu
+    = haml :'common_parts/annotation_submit'
+
   - cls = "past"
   - for i in [frame_begin-@meta_tags[:pre_frame_num].to_i,0].max...[frame_end+@meta_tags[:post_frame_num].to_i,frame_num].min
     -if i==frame_begin-1
@@ -31,7 +34,7 @@
           .annotation_form{id:"annotation_form_#{i}"}
       -else
         - img_path,pedestrians = @task.get_frame_info(@meta_tags[:data_id],i)
-        .col-lg-5{style:"height=#{@meta_tags[:image_height]};"}
+        .col-lg-5{style:"height=#{@meta_tags[:image_height]};width=#{@meta_tags[:image_width]};"}
           %img{src:img_path,height:@meta_tags[:image_height]}
         .col-lg-7
           -if (pedestrians != nil)
@@ -46,9 +49,6 @@
           -else
             = "タグ付けがまだです."
     %hr
-    - if i==frame_end-1
-      .col-lg-12{style:"min-height:#{(@meta_tags[:image_height]/2).to_i}px;"}
-        = haml :'common_parts/annotation_submit'
 
 
 
