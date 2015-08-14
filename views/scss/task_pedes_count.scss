@@ -5,9 +5,21 @@ $accent_col: #FFE585;
 $accent_col2: #B29939;
 $text_col_light: #ffffff;
 $defocus: #aaaaaa;
+$header_height: 50px;
+
+$margin-side: 10px;
+
 
 div.task_pedes_count.past,
 div.task_pedes_count.future{
   background-color: $defocus;
 }
-
+#annotation_completion{
+  .fixed_menu{
+    position:fixed;
+    text-align:right;
+    z-index:100;
+    height:10px;
+    margin-left:$margin-side;
+  }
+}
