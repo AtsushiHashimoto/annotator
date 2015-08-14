@@ -132,10 +132,12 @@ blob_images
 
       end
       if timestamps.size != frame then
-        STDERR.puts "FATAL_ERROR: number of frames and timestamps are not equal."
-        STDERR.puts "timestamps.size = #{timestamps.size}"
-        STDERR.puts "frame: #{frame}"
-        raise 500
+        ferr = File.open("error_task_pedes_count.log","a")
+        ferr.puts "ERROR: number of frames and timestamps are not equal."
+        ferr.puts "timestamps.size = #{timestamps.size}"
+        ferr.puts "frame: #{frame}"
+        ferr.close
+#        raise 500
       end
     end
 
