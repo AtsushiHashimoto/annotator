@@ -34,8 +34,8 @@
           .annotation_form{id:"annotation_form_#{i}"}
       -else
         - img_path,pedestrians = @task.get_frame_info(@meta_tags[:data_id],i)
-        .col-lg-5{style:"height=#{@meta_tags[:image_height]};width=#{@meta_tags[:image_width]};"}
-          %img{src:img_path,height:@meta_tags[:image_height]}
+        .col-lg-5{style:"height=#{@meta_tags[:image_height]};"}
+          %img{src:img_path,height:@meta_tags[:image_height],width:@meta_tags[:image_width]}
         .col-lg-7
           -if (pedestrians != nil)
             -if pedestrians.size > 0
