@@ -173,29 +173,26 @@ blob_images
 
   # annotationにデータを入れて返す
   def parse_annotation(hash)
-    frame_num = hash[:frame_num].to_i
     frame_begin = hash[:frame_begin].to_i
-    annotation = {pedestrians:Array.new(frame_num)}
-    for i in 0...frame_num do
-      annotation[:pedestrians][i] = []
-    end
+    annotation = {pedestrians:[]}
     return annotation if !hash.include?('rect') or hash[:rect].size < 1
-
-    annotation[:timestamps] = JSON.parse(hash[:timestamps])
-
-    puts hash[:rect]
+    
+    #puts hash[:rect]
     if hash[:rect].class == String then
       # overwrite時にはsessionに格納されることで(?)何故かarrayが文字列になる
       hash[:gender] = JSON.parse(hash[:gender])
       hash[:direction] = JSON.parse(hash[:direction])
       hash[:rect] = JSON.parse(hash[:rect])
       hash[:frame] = JSON.parse(hash[:frame])
+      hash[:timestamp] = JSON.parse(hash[:timestamp])
     end
 
     local_indice = Set.new
     for i in 0...hash[:rect].size do
       local_index = hash[:frame][i].to_i - frame_begin
-      annotation[:pedestrians][local_index] << {
+      annotation[:pedestrians] << {
+          frame:hash[:frame][i],
+          timestamp:hash[:timestamp][i],
           gender:hash[:gender][i],
           direction:hash[:direction][i],
           rect:JSON.parse(hash[:rect][i])
@@ -203,7 +200,7 @@ blob_images
       local_indice << local_index
     end
 
-    annotation[:canvas_imagepath] = [nil]*frame_num
+    annotation[:canvas_imagepath] = {}
     ticket = Ticket.where(task:@task, blob_id:hash[:blob_id])[0] unless local_indice.empty?
     for local_index in local_indice do
       img_path = ticket['img_path'][local_index]
@@ -318,9 +315,9 @@ blob_images
     idx = frame - ticket['frame_begin']
     image_path = "/data_path/#{@task}/#{ticket['img_path'][idx]}"
 
-    return image_path,nil if mtasks.size < 1 or mtasks[0]['canvas_imagepath'][idx] == nil
-
     mtask = mtasks[0]
+    return image_path,nil if mtasks.size < 1 or mtask['canvas_imagepath'].include?(idx)
+
     image_path = mtask['canvas_imagepath'][idx]
     pedestrians = mtask['pedestrians'][idx]
     return image_path, pedestrians

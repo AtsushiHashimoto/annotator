@@ -11,11 +11,14 @@ do ($=jQuery) ->
     val = meta.getAttribute("value")
     #console.log("#{key}: #{val}")
     params[key] = val
+
   params["img_path"] = JSON.parse(params["img_path"])
   params['frame_begin'] = Number(params['frame_begin'])
   params['frame_end'] = Number(params['frame_end'])
   params['image_width'] = parseFloat(params['image_width'])
   params['image_height'] = parseFloat(params['image_height'])
+  params['timestamp'] = JSON.parse(params['timestamp'])
+
   rects = new Array(params['frame_end']-params['frame_begin'])
   for i in [0...params['frame_end']-params['frame_begin']]
     rects[i] =[]
@@ -190,6 +193,7 @@ do ($=jQuery) ->
     $(fieldset).attr('id',id)
     $(fieldset).find(".frame").attr('value',frame)
     $(fieldset).find(".pedes_label").text("通行人[#{rects[local_index].length}]")
+    $(fieldset).find(".timestamp").attr('value',params['timestamp'][local_index])
 
     gender = assign_gender(is_left)
     $(fieldset).find(".gender").attr('value',gender)
