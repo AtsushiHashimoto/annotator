@@ -317,14 +317,16 @@ blob_images
 
     idx = frame - ticket['frame_begin']
     image_path = "/data_path/#{@task}/#{ticket['img_path'][idx]}"
+    pedestrians = []
+    return image_path, pedestrians if mtasks.size < 1
 
     mtask = mtasks[0]
-    return image_path,nil #if mtasks.size < 1 or mtask['canvas_imagepath'].include?(idx)
-=begin
-    image_path = mtask['canvas_imagepath'][idx]
-    pedestrians = mtask['pedestrians'][idx]
+    # 超効率悪い…
+    for ped in mtask['pedestrians'] do
+      next if ped['frame'].to_i != frame
+      pedestrians << ped
+    end
     return image_path, pedestrians
-=end
   end
 
   def rendering_frame(params={frame_id:0,data_id:""})

@@ -9,7 +9,6 @@ do ($=jQuery) ->
   for meta in metas
     key = meta.getAttribute("name")
     val = meta.getAttribute("value")
-    #console.log("#{key}: #{val}")
     params[key] = val
 
   params["img_path"] = JSON.parse(params["img_path"])
@@ -260,11 +259,41 @@ do ($=jQuery) ->
     console.log(i)
     DrawCanvas("#canvas_current_#{i+offset}", "#{params['imagepath_header']}/#{params['img_path'][i]}", params['line_imagepath'])
     makeCanvasClickable("#canvas_current_#{i+offset}",(i+offset))
+
   prev_segment = $(".prev_segment")
   if prev_segment.length > 0
     $('html, body').animate({scrollTop: prev_segment.offset().top}, 0)
     $('html, body').animate({scrollTop: $(".focus").offset().top-50}, 1000)
   jQuery("#annotation_completion").validationEngine();
+
+  DrawNonfocusRects = (frame) ->
+    return if !(params["img_path_#{frame}"])
+    console.log($("#meta-img_path_#{frame}"))
+
+    DrawCanvas("#canvas_nonfocus_#{frame}", params["img_path_#{frame}"],params['line_imagepath'])
+    pedestrians = JSON.parse(params["pedestrians_#{frame}"])
+    pedes_id = 0
+    console.log(pedestrians)
+    for ped in pedestrians
+      color = assign_color(ped['gender'])
+      _point1 = {
+        x: ped['rect']['x'] * params['image_width'],
+        y: ped['rect']['y'] * params['image_height']
+      }
+      _point2 = {
+        x: _point1.x + ped['rect']['width'] * params['image_width'],
+        y: _point1.y + ped['rect']['height']* params['image_height']}
+      DrawFixedRect("#canvas_nonfocus_#{frame}",_point1,_point2,color,frame,pedes_id)
+      pedes_id++
+
+  for i in [0..Number(params['pre_frame_num'])]
+    frame = offset - i
+    break if frame < 0
+    DrawNonfocusRects(frame)
+
+  for i in [0..Number(params['post_frame_num'])]
+    frame = params['frame_end'] + i
+    DrawNonfocusRects(frame)
 
   # 作る!!
   Jump2task = (id) ->
