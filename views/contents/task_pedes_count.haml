@@ -33,7 +33,12 @@
       -else
         - img_path,pedestrians = @task.get_frame_info(@meta_tags[:data_id],i)
         .col-lg-5{style:"height=#{@meta_tags[:image_height]};"}
-          %img{src:img_path,height:@meta_tags[:image_height],width:@meta_tags[:image_width]}
+          - if (!pedestrians.empty?)
+            %canvas{id:"canvas_nonfocus_#{i}", class:"canvas_nonfocus",width:@meta_tags[:image_width], height:@meta_tags[:image_height]}
+            %meta{id:"meta-img_path_#{i}", name:"img_path_#{i}", value:img_path}
+            %meta{id:"meta-pedestrians_#{i}", name:"pedestrians_#{i}", value:pedestrians.to_json}
+          - else
+            %img{src:img_path,height:@meta_tags[:image_height],width:@meta_tags[:image_width]}
         .col-lg-7
           -if (pedestrians != nil)
             -if pedestrians.size > 0
@@ -51,8 +56,6 @@
             - else
               = "タグ付け済みのフレームです（前後の状況確認用)"
     %hr
-
-
 
 #attributes_template.hidden
   %fieldset.underline
