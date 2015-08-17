@@ -176,7 +176,7 @@ blob_images
     frame_begin = hash[:frame_begin].to_i
     annotation = {pedestrians:[]}
     return annotation if !hash.include?('rect') or hash[:rect].size < 1
-    
+
     #puts hash[:rect]
     if hash[:rect].class == String then
       # overwrite時にはsessionに格納されることで(?)何故かarrayが文字列になる
@@ -200,6 +200,7 @@ blob_images
       local_indice << local_index
     end
 
+=begin
     annotation[:canvas_imagepath] = {}
     ticket = Ticket.where(task:@task, blob_id:hash[:blob_id])[0] unless local_indice.empty?
     for local_index in local_indice do
@@ -220,6 +221,7 @@ blob_images
         `#{command}`
       end
     end
+=end
     return annotation
   end
 
@@ -228,6 +230,7 @@ blob_images
     return "#{temp_dir}/#{File.basename(imgpath)}"
   end
 
+=begin
   def overwrite_hook(hash,user_name)
     frame_num = hash[:frame_num].to_i
     frame_begin = hash[:frame_begin].to_i
@@ -245,7 +248,7 @@ blob_images
     end
     return hash
   end
-
+=end
 
   def refresh_ticket_pool
     hash = Hash.new{|hash,key| hash[key] = {}} # poolの元
@@ -316,11 +319,12 @@ blob_images
     image_path = "/data_path/#{@task}/#{ticket['img_path'][idx]}"
 
     mtask = mtasks[0]
-    return image_path,nil if mtasks.size < 1 or mtask['canvas_imagepath'].include?(idx)
-
+    return image_path,nil #if mtasks.size < 1 or mtask['canvas_imagepath'].include?(idx)
+=begin
     image_path = mtask['canvas_imagepath'][idx]
     pedestrians = mtask['pedestrians'][idx]
     return image_path, pedestrians
+=end
   end
 
   def rendering_frame(params={frame_id:0,data_id:""})

@@ -207,9 +207,9 @@ do ($=jQuery) ->
 
     $("#annotation_form_#{frame}").append(fieldset)
 
-    canvasData = $("#canvas_current_#{frame}")[0].toDataURL()
-    canvasData = canvasData.replace(/^data:image\/png;base64,/, '')
-    $("#post_canvas_#{frame}").attr('value',canvasData)
+    #canvasData = $("#canvas_current_#{frame}")[0].toDataURL()
+    #canvasData = canvasData.replace(/^data:image\/png;base64,/, '')
+    #$("#post_canvas_#{frame}").attr('value',canvasData)
 
   assign_color = (gender) ->
     color = '#0000ff'                     # 男性は青
