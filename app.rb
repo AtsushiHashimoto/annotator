@@ -547,7 +547,6 @@ class KUSKAnnotator < Sinatra::Base
 	
 	# dataへのアクセス
   get '/data_path/:task/*' do |task,file_path|
-    login_check
     path = settings.tasks[task].config[:data_path] + "/" +  file_path
     send_file path
   end
