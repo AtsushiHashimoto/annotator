@@ -551,6 +551,20 @@ class KUSKAnnotator < Sinatra::Base
     send_file path
   end
 
+  get '/view/:task/*' do |task,blob_id|
+    @title = "View #{task} for #{blob_id}"
+    tickets = Ticket.where(task:task, blob_id:blob_id)
+    pass if tickets.size < 1
+    raise 500 if tickets.size > 1
+    @ticket = tickets[0]
+    @mtasks = MicroTask.where(task:task,blob_id:blob_id)
+    dummy_current_task = {:id=>"dummy_user::#{blob_id}",:start_time=>now}
+    @task = settings.tasks[task]
+    @meta_tags = @task.generate_meta_tags(@ticket,dummy_current_task,'dummy_user')
+
+    haml "#{task}/view".to_sym
+  end
+
 	# debug用のパス
 	get '/test' do
 		ticket = Ticket.where(task:"task2")[0]
