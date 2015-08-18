@@ -12,19 +12,19 @@
 
   - cls = "past"
   - i_init = [frame_begin-@meta_tags[:pre_frame_num].to_i,0].max
-  - ticket = @task.find_ticket(@meta_tags['data_id'],i_init)
+  - ticket = @task.find_ticket(@meta_tags[:data_id],i_init)
   - for i in i_init...[frame_end+@meta_tags[:post_frame_num].to_i,frame_num].min
     -if i==frame_begin-1
       - cls = "past prev_segment"
-      - ticket = @task.find_ticket(@meta_tags['data_id'],i)
+      - ticket = @task.find_ticket(@meta_tags[:data_id],i)
     -elsif i==frame_begin
-      - ticket = @task.find_ticket(@meta_tags['data_id'],i)
+      - ticket = @task.find_ticket(@meta_tags[:data_id],i)
       - cls = "focus"
       %ul
         %li 以下の映像中で人が線を超えたところで，その人物を矩形で囲ってください．
         %li 女性は左クリック，男性は右クリックで囲う
     -elsif i==frame_end
-      - ticket = @task.find_ticket(@meta_tags['data_id'],i)
+      - ticket = @task.find_ticket(@meta_tags[:data_id],i)
       .col-lg-12
       - cls = "future"
     .col-lg-12{id:"frame#{i}",class:"task_pedes_count #{cls}"}
