@@ -3,9 +3,10 @@
 - frame_begin = @meta_tags[:frame_begin].to_i
 - frame_end = @meta_tags[:frame_end].to_i
 - cls = "past"
+- ticket = @task.find_ticket(@meta_tags[:data_id],frame_begin)
 - for i in frame_begin...frame_end
   .col-lg-12{id:"frame#{i}",class:"task_pedes_count #{cls}"}
-    - img_path,pedestrians = @task.get_frame_info(@meta_tags[:data_id],i)
+    - img_path,pedestrians = @task.get_frame_info(ticket,i)
     .col-lg-5{style:"height=#{@meta_tags[:image_height]};"}
       - if (!pedestrians.empty?)
         %canvas{id:"canvas_nonfocus_#{i}", class:"canvas_nonfocus",width:@meta_tags[:image_width], height:@meta_tags[:image_height]}

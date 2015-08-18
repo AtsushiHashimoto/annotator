@@ -309,10 +309,13 @@ blob_images
     true
   end
 
-  def get_frame_info(data_id,frame)
+  def find_ticket(data_id,frame)
     tickets = Ticket.where(task:@task,blob_id:/#{data_id}/,:frame_begin.lte=>frame,:frame_end.gt=>frame)#.*#{frame}#{@@config[:image_extension]}/)#.sort[frame.to_i]
     raise 500 if tickets.size!=1
-    ticket = tickets[0]
+    return tickets[0]
+  end
+
+  def get_frame_info(ticket,frame)
     mtasks = MicroTask.where(task:@task,blob_id:ticket['blob_id'])
 
     idx = frame - ticket['frame_begin']
