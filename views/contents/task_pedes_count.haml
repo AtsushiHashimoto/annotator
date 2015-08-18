@@ -11,15 +11,20 @@
     = haml :'common_parts/annotation_submit'
 
   - cls = "past"
-  - for i in [frame_begin-@meta_tags[:pre_frame_num].to_i,0].max...[frame_end+@meta_tags[:post_frame_num].to_i,frame_num].min
+  - i_init = [frame_begin-@meta_tags[:pre_frame_num].to_i,0].max
+  - ticket = @task.find_ticket(@meta_tags['blob_id'],i_init)
+  - for i in i_init...[frame_end+@meta_tags[:post_frame_num].to_i,frame_num].min
     -if i==frame_begin-1
       - cls = "past prev_segment"
+      - ticket = @task.find_ticket(@meta_tags['blob_id'],i)
     -elsif i==frame_begin
+      - ticket = @task.find_ticket(@meta_tags['blob_id'],i)
       - cls = "focus"
       %ul
         %li 以下の映像中で人が線を超えたところで，その人物を矩形で囲ってください．
         %li 女性は左クリック，男性は右クリックで囲う
     -elsif i==frame_end
+      - ticket = @task.find_ticket(@meta_tags['blob_id'],i)
       .col-lg-12
       - cls = "future"
     .col-lg-12{id:"frame#{i}",class:"task_pedes_count #{cls}"}
@@ -31,7 +36,7 @@
         .col-lg-7
           .annotation_form{id:"annotation_form_#{i}"}
       -else
-        - img_path,pedestrians = @task.get_frame_info(@meta_tags[:data_id],i)
+        - img_path,pedestrians = @task.get_frame_info(ticket,i)
         .col-lg-5{style:"height=#{@meta_tags[:image_height]};"}
           - if (!pedestrians.empty?)
             %canvas{id:"canvas_nonfocus_#{i}", class:"canvas_nonfocus",width:@meta_tags[:image_width], height:@meta_tags[:image_height]}
