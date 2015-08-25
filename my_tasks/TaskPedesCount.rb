@@ -92,13 +92,6 @@ blob_images
         end
         blob_id = md[1]
 
-        # 既に登録があれば再生成や上書きはしない
-        _id = "#{@task}_#{blob_id}"
-        if Ticket.duplicate?(_id) then
-          frame = Ticket.where(_id:_id)[0]['frame_end']
-          next
-        end
-        count = count + 1
 
         # frameの登録
         local_path = "#{@@config[:data_path]}/#{blob_path}/*#{@@config[:image_extension]}"
@@ -107,6 +100,16 @@ blob_images
           STDERR.puts "no files are in the directory '#{local_path}'. check it!"
           raise 500
         end
+
+        # 既に登録があれば再生成や上書きはしない
+        _id = "#{@task}_#{blob_id}"
+        if Ticket.duplicate?(_id) then
+          frame = frame + files.size
+          next
+        end
+        count = count + 1
+
+
         blob_path.gsub(@@config[:data_path],'')
         ticket = Ticket.new(_id: _id, blob_id: blob_id, task: @task, blob_path: blob_path, annotator:[])
 
