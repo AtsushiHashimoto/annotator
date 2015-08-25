@@ -316,8 +316,12 @@ blob_images
 
   def find_ticket(data_id,frame)
     tickets = Ticket.where(task:@task,blob_id:/#{data_id}/,:frame_begin.lte=>frame,:frame_end.gt=>frame)#.*#{frame}#{@@config[:image_extension]}/)#.sort[frame.to_i]
-    raise 500 if tickets.size!=1
-    return tickets[0]
+    if tickets.size > 1 then
+      # 途中でデータの構成を変更して支障がでている…仕様変更反対!
+      return tickets.to_a.sort_by{|v|v[:frame_begin]}[-1]
+    else
+      return tickets[0]
+    end
   end
 
   def get_frame_info(ticket,frame)
