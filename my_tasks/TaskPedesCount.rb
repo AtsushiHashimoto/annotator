@@ -10,17 +10,19 @@ class TaskPedesCount < MyTask
 
   def load_timestamps(data_dir)
     timestamp_files = Dir.glob("#{data_dir}/#{@@config[:timestamp_files]}").sort
+    puts timestamp_files.join("\n")
 
     timestamps = []
-    puts timestamp_files
+    #puts timestamp_files
     for file in timestamp_files do
       File.open(file).each{|line|
         line = line.strip
         next if line.empty?
         timestamps << line#parse_timestamp(line)
+        STDERR.puts line if timestamps.size % 1000 == 0
       }
     end
-    return timestamps
+    return timestamps.sort
   end
 
 # 実はパースしない方が取扱しやすい？？特に時刻の計算が必要なわけでなし．
