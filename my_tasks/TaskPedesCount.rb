@@ -8,6 +8,7 @@ class TaskPedesCount < MyTask
     return "ERROR: This task (#{@task}) is not designed to double-check."#contents/#{@name}"
   end
 
+=begin
   def load_timestamps(data_dir)
     timestamp_files = Dir.glob("#{data_dir}/#{@@config[:timestamp_files]}").sort
 
@@ -22,6 +23,7 @@ class TaskPedesCount < MyTask
     end
     return timestamps
   end
+=end
 
 # 実はパースしない方が取扱しやすい？？特に時刻の計算が必要なわけでなし．
 =begin
@@ -78,7 +80,7 @@ blob_images
 
     for data_path in all_data do
       frame = 0
-      timestamps = load_timestamps(data_path)
+      timestamp_files = Dir.glob("#{data_path}/#{@@config[:timestamp_files]}").sort
       #blob_paths = Dir.glob("#{data_path}/**/*#{@@config[:image_extension]}").map{|v|v.gsub!(@@config[:data_path],'')}
       # 分単位を1つのblobとする
       blob_paths = Dir.glob("#{data_path}/*/*").map{|v|v.gsub!(@@config[:data_path],'')}
@@ -92,13 +94,25 @@ blob_images
         end
         blob_id = md[1]
 
+        index = blob_paths.index(blob_path)
+        timestamp_file = timestamp_files[index]
+        timestamps = []
+        File.open(timestamp_file).each{|line|
+          line = line.strip
+          next if line.empty?
+          timestamps << line#parse_timestamp(line)
+        }
+
+
+
         # 既に登録があれば再生成や上書きはしない
         _id = "#{@task}_#{blob_id}"
         if Ticket.duplicate?(_id) then
-          frame = Ticket.where(_id:_id)[0]['frame_end']
+          frame = frame + timestamps.size
           next
         end
         count = count + 1
+
 
         # frameの登録
         local_path = "#{@@config[:data_path]}/#{blob_path}/*#{@@config[:image_extension]}"
@@ -107,17 +121,25 @@ blob_images
           STDERR.puts "no files are in the directory '#{local_path}'. check it!"
           raise 500
         end
-        blob_path.gsub(@@config[:data_path],'')
-        ticket = Ticket.new(_id: _id, blob_id: blob_id, task: @task, blob_path: blob_path, annotator:[])
+        if timestamps.size != files.size then
+          ferr = File.open("error_task_pedes_count.log","a")
+          ferr.puts "ERROR: number of frames and timestamps are not equal."
+          ferr.puts "timestamps.size = #{timestamps.size}"
+          ferr.puts "image_files.size: #{files.size}"
+          ferr.close
+#        raise 500
+        end
 
-        ticket['timestamp'] = [nil]*files.size
+        blob_path.gsub(@@config[:data_path],'')
+
+        ticket = Ticket.new(_id: _id, blob_id: blob_id, task: @task, blob_path: blob_path, annotator:[])
+        ticket['timestamp'] = timestamps
         ticket['img_path'] = [nil]*files.size
         ticket['frame_begin'] = frame
 
         i = 0
         base_path = blob_path.gsub(@@config[:data_path],"")
         for file in files do
-          ticket['timestamp'][i] = timestamps[frame]
           ticket['img_path'][i] = "#{base_path}/#{File.basename(file)}"
           i = i+1
           frame = frame+1
@@ -130,14 +152,6 @@ blob_images
           raise MyCustomError, "新規チケットの発行に失敗しました"
         end
 
-      end
-      if timestamps.size != frame then
-        ferr = File.open("error_task_pedes_count.log","a")
-        ferr.puts "ERROR: number of frames and timestamps are not equal."
-        ferr.puts "timestamps.size = #{timestamps.size}"
-        ferr.puts "frame: #{frame}"
-        ferr.close
-#        raise 500
       end
     end
 
