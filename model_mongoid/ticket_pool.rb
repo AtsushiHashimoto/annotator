@@ -40,6 +40,7 @@ class TicketPool
   end
 
   def self.select(user_name, chain_duration_sec)
+    STDERR.puts "TicketPool.select(#{username}, #{chain_duration_sec})"
     tps = TicketPool.all
     # TicketPoolの要素をランダムな順番で選ぶ
     random_index = (0...tps.count).to_a.shuffle
@@ -51,8 +52,11 @@ class TicketPool
         # 一定時間経過するまでは，特定のユーザが作業をしているとみなす．
         next if key==user_name
         next if !tp.is_active?(key,chain_duration_sec)
+
         active_user_num = active_user_num + 1
       end
+      STDERR.puts "next if #{active_user_num} >= #{tp.max_user_num}"
+
       next if active_user_num >= tp.max_user_num
 
       # TicketPoolが決まったら
@@ -68,6 +72,9 @@ class TicketPool
   def is_active?(user_name,chain_duration_sec)
     return false if self.users.empty?
     return false unless self.users.include?(user_name)
+    STDERR.puts "is_active?"
+    STDERR.puts "#{Time.now} <= #{self.users[user_name][:start_time] + chain_duration_sec}"
+    STDERR.puts "(#{self.users[user_name][:start_time]} + #{chain_duration_sec})"
     return Time.now <= self.users[user_name][:start_time] + chain_duration_sec
   end
 
