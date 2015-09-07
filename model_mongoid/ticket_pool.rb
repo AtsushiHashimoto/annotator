@@ -40,7 +40,7 @@ class TicketPool
   end
 
   def self.select(user_name, chain_duration_sec)
-    STDERR.puts "TicketPool.select(#{user_name}, #{chain_duration_sec})"
+    #STDERR.puts "TicketPool.select(#{user_name}, #{chain_duration_sec})"
     tps = TicketPool.all
     # TicketPoolの要素をランダムな順番で選ぶ
     random_index = (0...tps.count).to_a.shuffle
@@ -55,14 +55,20 @@ class TicketPool
 
         active_user_num = active_user_num + 1
       end
-      STDERR.puts "next if #{active_user_num} >= #{tp.max_user_num}"
+      #STDERR.puts "next if #{active_user_num} >= #{tp.max_user_num}"
 
       next if active_user_num >= tp.max_user_num
 
       # TicketPoolが決まったら
       tp.assign(user_name)
       t_id = tp.next_task(user_name)
+      
+      for key,val in tp[:tickets] do
+	ticket = Ticket.find(val)
+	puts "#{key}: #{ticket['completion']} but annotator: #{ticket.annotator.join(",")}"
+      end
       next if nil == t_id
+  
       return tp, t_id
     end
     # 最後までいったら，何も見つからなかったとしてnil,nilを返す
@@ -72,9 +78,9 @@ class TicketPool
   def is_active?(user_name,chain_duration_sec)
     return false if self.users.empty?
     return false unless self.users.include?(user_name)
-    STDERR.puts "is_active?"
-    STDERR.puts "#{Time.now} <= #{self.users[user_name][:start_time] + chain_duration_sec}"
-    STDERR.puts "(#{self.users[user_name][:start_time]} + #{chain_duration_sec})"
+    #STDERR.puts "is_active?"
+    #STDERR.puts "#{Time.now} <= #{self.users[user_name][:start_time] + chain_duration_sec}"
+    #STDERR.puts "(#{self.users[user_name][:start_time]} + #{chain_duration_sec})"
     return Time.now <= self.users[user_name][:start_time] + chain_duration_sec
   end
 
@@ -93,6 +99,7 @@ class TicketPool
 #    puts "prev. last_task: #{lt}"
     hash[:last_task] = nil if lt and !self.tickets.has_key?(lt)
     lt = hash[:last_task]
+
     # 最初の(typeがtaskの時は自分がまだやったことのない)タスクを探す．
     flag = (nil == lt)
 
@@ -101,9 +108,11 @@ class TicketPool
       next if !flag and index != lt # 要チェック
       flag = true
       next if index == lt
-      next if self.pool_type == :task and Ticket.find(t_id).annotator.include?(user_name)
+      ticket = Ticket.find(t_id)
+      next if ticket.completion == true
+      next if self.pool_type == :task and ticket.annotator.include?(user_name)
       hash[:last_task] = index
-      STDERR.puts "ERROR: failed to save pool" unless self.save!
+      #STDERR.puts "ERROR: failed to save pool" unless self.save!
       return t_id
     end
     return nil
