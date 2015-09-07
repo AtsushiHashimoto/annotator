@@ -40,7 +40,7 @@ class TicketPool
   end
 
   def self.select(user_name, chain_duration_sec)
-    STDERR.puts "TicketPool.select(#{username}, #{chain_duration_sec})"
+    STDERR.puts "TicketPool.select(#{user_name}, #{chain_duration_sec})"
     tps = TicketPool.all
     # TicketPoolの要素をランダムな順番で選ぶ
     random_index = (0...tps.count).to_a.shuffle

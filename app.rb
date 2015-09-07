@@ -272,7 +272,7 @@ class KUSKAnnotator < Sinatra::Base
       tp = TicketPool.where(_id:session[:chain_task])
       if tp.count == 1 then
         tp = tp[0]
-        if tp.is_active?(@user,chain_duration_sec) then
+	if tp.is_active?(@user,chain_duration_sec) then
           ticket_id = tp.next_task(@user)
           ticket = Ticket.find(ticket_id) if ticket_id
         else
