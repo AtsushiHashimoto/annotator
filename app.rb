@@ -352,7 +352,7 @@ class KUSKAnnotator < Sinatra::Base
 		#STDERR.puts @user
 		login_check
     puts Time.zone
-		curr_time = Time.now
+		curr_time = Time.now.localtime
 
 		
 		mtask = MicroTask.new(_id: params[:_id], worker: params[:worker], time_range: [parse_time(params[:start_time]),curr_time],min_work_time: params[:min_work_time],task: params[:task])
